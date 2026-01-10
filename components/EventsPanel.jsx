@@ -176,33 +176,136 @@ export default function EventsPanel() {
       </div>
 
       <div className="flex-1 lg:overflow-y-auto lg:min-h-0 scrollbar-matrix">
-        {/* Escalations Section */}
+        {/* Event Chains Section */}
         {escalations && (
           <div className="mb-4 pb-4 border-b border-matrix-green border-opacity-30">
             <div className="text-xs text-matrix-green font-bold mb-2">
-              ESCALATIONS
+              EVENT CHAINS
             </div>
-            <div className="text-xs text-matrix-green-dim mb-1">
-              Active: {escalations.active_count || 0} / Total Chains:{" "}
+            <div className="text-xs text-matrix-green-dim mb-3">
+              Active: {escalations.active_count || 0} / Total:{" "}
               {escalations.total_chains || 0}
             </div>
             {escalations.chains && escalations.chains.length > 0 ? (
-              <div className="space-y-2 mt-2">
-                {escalations.chains.map((chain, idx) => (
-                  <div
-                    key={idx}
-                    className="border border-red-500 border-opacity-30 p-2 bg-red-500 bg-opacity-10"
-                  >
-                    <div className="text-xs text-red-400 font-bold">
-                      Chain #{idx + 1}
+              <div className="space-y-3 mt-2">
+                {escalations.chains.map((chain, idx) => {
+                  const currentStageIndex = chain.current_stage || 0;
+                  const totalStages = chain.stages?.length || 0;
+                  const progress = totalStages > 0 ? (currentStageIndex + 1) / totalStages : 0;
+                  const severity = chain.severity || 0;
+                  
+                  // Determine severity color
+                  const getSeverityColor = (sev) => {
+                    if (sev >= 0.8) return "text-red-500";
+                    if (sev >= 0.6) return "text-orange-500";
+                    if (sev >= 0.4) return "text-yellow-500";
+                    return "text-matrix-green-dim";
+                  };
+                  
+                  const severityColor = getSeverityColor(severity);
+                  
+                  return (
+                    <div
+                      key={chain.id || idx}
+                      className="border border-red-500 border-opacity-40 p-3 bg-red-500 bg-opacity-10 hover:bg-opacity-15 transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="text-xs text-red-400 font-bold">
+                              {chain.id || `Chain #${idx + 1}`}
+                            </span>
+                            {chain.district_id && (
+                              <span className="text-xs text-matrix-green-dim">
+                                [{chain.district_id}]
+                              </span>
+                            )}
+                            <span className={`text-xs font-bold ${severityColor}`}>
+                              SEVERITY: {(severity * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          {chain.trigger_condition && (
+                            <div className="text-xs text-matrix-green-dim mb-2">
+                              Trigger: {chain.trigger_condition}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Stage Progression */}
+                      {chain.stages && chain.stages.length > 0 && (
+                        <div className="mb-3">
+                          <div className="text-xs text-matrix-green-dim mb-2">
+                            PROGRESSION:
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {chain.stages.map((stage, stageIdx) => {
+                              const isActive = stageIdx === currentStageIndex;
+                              const isCompleted = stageIdx < currentStageIndex;
+                              const isPending = stageIdx > currentStageIndex;
+                              
+                              return (
+                                <span
+                                  key={stageIdx}
+                                  className={`text-xs px-2 py-1 border ${
+                                    isActive
+                                      ? "bg-red-500 bg-opacity-30 text-red-400 border-red-500 border-opacity-60 font-bold"
+                                      : isCompleted
+                                      ? "bg-orange-500 bg-opacity-20 text-orange-400 border-orange-500 border-opacity-40"
+                                      : "bg-matrix-dark bg-opacity-50 text-matrix-green-dim border-matrix-green border-opacity-20"
+                                  }`}
+                                >
+                                  {stageIdx + 1}. {stage.toUpperCase()}
+                                  {isActive && " ⚡"}
+                                </span>
+                              );
+                            })}
+                          </div>
+                          {/* Progress Bar */}
+                          <div className="h-1.5 bg-matrix-dark border border-matrix-green border-opacity-20 relative overflow-hidden">
+                            <div
+                              className="h-full bg-red-500 transition-all duration-300"
+                              style={{
+                                width: `${progress * 100}%`,
+                                opacity: 0.7,
+                                boxShadow: "0 0 10px rgba(239, 68, 68, 0.5)",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Chain Metadata */}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-matrix-green-dim mt-2 pt-2 border-t border-matrix-green border-opacity-20">
+                        {chain.triggered_at_turn !== undefined && (
+                          <div>
+                            <span className="text-matrix-green">Triggered:</span> Turn {chain.triggered_at_turn}
+                          </div>
+                        )}
+                        {chain.last_advance_turn !== undefined && (
+                          <div>
+                            <span className="text-matrix-green">Last Advance:</span> Turn {chain.last_advance_turn}
+                          </div>
+                        )}
+                        {chain.stalled_turns !== undefined && (
+                          <div className={chain.stalled_turns > 5 ? "text-yellow-400" : ""}>
+                            <span className="text-matrix-green">Stalled:</span> {chain.stalled_turns} turns
+                            {chain.stalled_turns > 5 && " ⚠"}
+                          </div>
+                        )}
+                        {chain.current_stage !== undefined && (
+                          <div>
+                            <span className="text-matrix-green">Stage:</span> {chain.current_stage + 1}/{totalStages}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {/* Add more chain details if available */}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-xs text-matrix-green-dim">
-                No active escalation chains
+                No active event chains
               </div>
             )}
           </div>
