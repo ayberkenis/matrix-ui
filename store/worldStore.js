@@ -12,6 +12,11 @@ export const useWorldStore = create((set, get) => ({
   districts: [],
   events: [], // Keep last 200
   eventUpdateInterval: 500, // Throttle interval for events (ms)
+  eventsPaused: false, // Pause/resume for events
+  causalityUpdateInterval: 500, // Throttle interval for causality (ms)
+  causalityPaused: false, // Pause/resume for causality
+  emotionsUpdateInterval: 500, // Throttle interval for emotions (ms)
+  emotionsPaused: false, // Pause/resume for emotions
   metrics: {
     stability: 0,
     novelty: 0,
@@ -19,6 +24,9 @@ export const useWorldStore = create((set, get) => ({
     expression: 0,
   },
   version: null, // Version info from /version endpoint
+  causality: null, // Causality records from /world/causality
+  emotions: null, // Emotions data from /world/emotions
+  rules: null, // Rules from /world/rules
 
   // Actions
   setWsStatus: (status) => set({ wsStatus: status }),
@@ -27,11 +35,13 @@ export const useWorldStore = create((set, get) => ({
 
   setAgents: (agents) =>
     set({
+      // Handle WebSocket payload with agents array, or REST API response
       agents: Array.isArray(agents) ? agents : agents?.agents || [],
     }),
 
   setDistricts: (districts) =>
     set({
+      // Handle WebSocket payload with districts array, or REST API response
       districts: Array.isArray(districts)
         ? districts
         : districts?.districts || [],
@@ -97,6 +107,51 @@ export const useWorldStore = create((set, get) => ({
   setVersion: (version) => set({ version }),
 
   setEventUpdateInterval: (interval) => set({ eventUpdateInterval: interval }),
+  setEventsPaused: (paused) => set({ eventsPaused: paused }),
+  setCausalityUpdateInterval: (interval) => set({ causalityUpdateInterval: interval }),
+  setCausalityPaused: (paused) => set({ causalityPaused: paused }),
+  setEmotionsUpdateInterval: (interval) => set({ emotionsUpdateInterval: interval }),
+  setEmotionsPaused: (paused) => set({ emotionsPaused: paused }),
+
+  setCausality: (causality) =>
+    set((state) => {
+      // Handle WebSocket updates with new_records
+      if (causality?.new_records && Array.isArray(causality.new_records)) {
+        const currentRecords = state.causality?.records || [];
+        const newRecords = causality.new_records;
+        // Add new records to the beginning, keep last 100
+        const merged = [...newRecords, ...currentRecords].slice(0, 100);
+        return { causality: { ...causality, records: merged } };
+      }
+      // Handle REST API response with records array
+      return { causality };
+    }),
+  setEmotions: (emotions) =>
+    set((state) => {
+      // Handle WebSocket updates with recent_traces
+      if (emotions?.recent_traces && Array.isArray(emotions.recent_traces)) {
+        const currentTraces = state.emotions?.recent_traces || [];
+        const newTraces = emotions.recent_traces;
+        // Add new traces to the beginning, keep last 50
+        const merged = [...newTraces, ...currentTraces].slice(0, 50);
+        return { emotions: { ...emotions, recent_traces: merged } };
+      }
+      // Handle REST API response with full data
+      return { emotions };
+    }),
+  setRules: (rules) =>
+    set((state) => {
+      // Handle WebSocket updates with new_rules
+      if (rules?.new_rules && Array.isArray(rules.new_rules)) {
+        const currentRules = state.rules?.rules || [];
+        const newRules = rules.new_rules;
+        // Add new rules to the beginning, keep last 50
+        const merged = [...newRules, ...currentRules].slice(0, 50);
+        return { rules: { ...rules, rules: merged } };
+      }
+      // Handle REST API response with rules array
+      return { rules };
+    }),
 
   // Initialize with server data
   initialize: (data) => {

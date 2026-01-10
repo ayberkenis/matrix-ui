@@ -34,11 +34,19 @@ class WSClient {
       events: [],
       agents: null,
       districts: null,
+      causality: null,
+      emotions: null,
+      rules: null,
       metrics: null,
     };
     this.updateTimer = null;
     this.updateInterval = 500; // Batch updates every 500ms (slower for better performance)
     this.eventUpdateInterval = 500; // Can be adjusted by UI
+    this.causalityUpdateInterval = 500; // Can be adjusted by UI
+    this.emotionsUpdateInterval = 500; // Can be adjusted by UI
+    this.eventsPaused = false;
+    this.causalityPaused = false;
+    this.emotionsPaused = false;
   }
 
   setEventUpdateInterval(interval) {
@@ -53,11 +61,66 @@ class WSClient {
         this.updateQueue.state !== null ||
         this.updateQueue.agents !== null ||
         this.updateQueue.districts !== null ||
+        this.updateQueue.causality !== null ||
+        this.updateQueue.emotions !== null ||
+        this.updateQueue.rules !== null ||
         this.updateQueue.metrics !== null
       ) {
         this.scheduleUpdate();
       }
     }
+  }
+
+  setCausalityUpdateInterval(interval) {
+    this.causalityUpdateInterval = interval;
+    if (this.updateTimer) {
+      clearTimeout(this.updateTimer);
+      this.updateTimer = null;
+      if (
+        this.updateQueue.events.length > 0 ||
+        this.updateQueue.state !== null ||
+        this.updateQueue.agents !== null ||
+        this.updateQueue.districts !== null ||
+        this.updateQueue.causality !== null ||
+        this.updateQueue.emotions !== null ||
+        this.updateQueue.rules !== null ||
+        this.updateQueue.metrics !== null
+      ) {
+        this.scheduleUpdate();
+      }
+    }
+  }
+
+  setEmotionsUpdateInterval(interval) {
+    this.emotionsUpdateInterval = interval;
+    if (this.updateTimer) {
+      clearTimeout(this.updateTimer);
+      this.updateTimer = null;
+      if (
+        this.updateQueue.events.length > 0 ||
+        this.updateQueue.state !== null ||
+        this.updateQueue.agents !== null ||
+        this.updateQueue.districts !== null ||
+        this.updateQueue.causality !== null ||
+        this.updateQueue.emotions !== null ||
+        this.updateQueue.rules !== null ||
+        this.updateQueue.metrics !== null
+      ) {
+        this.scheduleUpdate();
+      }
+    }
+  }
+
+  setEventsPaused(paused) {
+    this.eventsPaused = paused;
+  }
+
+  setCausalityPaused(paused) {
+    this.causalityPaused = paused;
+  }
+
+  setEmotionsPaused(paused) {
+    this.emotionsPaused = paused;
   }
 
   connect() {
@@ -126,10 +189,20 @@ class WSClient {
         }
         break;
       case "agents":
-        this.updateQueue.agents = payload;
+        // Extract agents array from payload.agents if it exists, otherwise use payload directly
+        this.updateQueue.agents = payload?.agents || payload;
         break;
       case "districts":
         this.updateQueue.districts = payload;
+        break;
+      case "causality":
+        this.updateQueue.causality = payload;
+        break;
+      case "emotions":
+        this.updateQueue.emotions = payload;
+        break;
+      case "rules":
+        this.updateQueue.rules = payload;
         break;
       case "metrics":
         this.updateQueue.metrics = payload;
@@ -148,11 +221,15 @@ class WSClient {
       clearTimeout(this.updateTimer);
     }
 
-    // Use event-specific interval if there are events, otherwise use general interval
-    const interval =
-      this.updateQueue.events.length > 0
-        ? this.eventUpdateInterval
-        : this.updateInterval;
+    // Use specific interval based on what's in the queue
+    let interval = this.updateInterval;
+    if (this.updateQueue.events.length > 0) {
+      interval = this.eventUpdateInterval;
+    } else if (this.updateQueue.causality !== null) {
+      interval = this.causalityUpdateInterval;
+    } else if (this.updateQueue.emotions !== null) {
+      interval = this.emotionsUpdateInterval;
+    }
 
     // Schedule update after a delay to batch multiple messages
     this.updateTimer = setTimeout(() => {
@@ -169,8 +246,8 @@ class WSClient {
       this.updateQueue.state = null;
     }
 
-    // Batch add all queued events at once
-    if (this.updateQueue.events.length > 0) {
+    // Batch add all queued events at once (only if not paused)
+    if (this.updateQueue.events.length > 0 && !this.eventsPaused) {
       const events = [...this.updateQueue.events];
       this.updateQueue.events = [];
 
@@ -190,6 +267,67 @@ class WSClient {
       this.updateQueue.districts = null;
     }
 
+    if (this.updateQueue.causality !== null && !this.causalityPaused) {
+      const causalityData = this.updateQueue.causality;
+      this.updateQueue.causality = null;
+
+      // Handle WebSocket updates with new_records - add one by one
+      if (
+        causalityData?.new_records &&
+        Array.isArray(causalityData.new_records)
+      ) {
+        const events = [...causalityData.new_records];
+        // Add records one by one (reverse to maintain newest-first order)
+        // This creates a cascading effect where new records appear sequentially
+        events.reverse().forEach((record, index) => {
+          setTimeout(() => {
+            // Create a temporary causality object with just this record
+            const tempCausality = {
+              ...causalityData,
+              new_records: [record],
+            };
+            store.setCausality(tempCausality);
+          }, index * 50); // 50ms delay between each record
+        });
+      } else {
+        // Handle REST API response or full update
+        store.setCausality(causalityData);
+      }
+    }
+
+    if (this.updateQueue.emotions !== null && !this.emotionsPaused) {
+      const emotionsData = this.updateQueue.emotions;
+      this.updateQueue.emotions = null;
+
+      // Handle WebSocket updates with recent_traces - add one by one
+      if (
+        emotionsData?.recent_traces &&
+        Array.isArray(emotionsData.recent_traces)
+      ) {
+        const traces = [...emotionsData.recent_traces];
+        // Add traces one by one (reverse to maintain newest-first order)
+        // This creates a cascading effect where new traces appear sequentially
+        traces.reverse().forEach((trace, index) => {
+          setTimeout(() => {
+            // Create a temporary emotions object with just this trace
+            const tempEmotions = {
+              ...emotionsData,
+              recent_traces: [trace],
+            };
+            store.setEmotions(tempEmotions);
+          }, index * 50); // 50ms delay between each trace
+        });
+      } else {
+        // Handle REST API response or full update
+        store.setEmotions(emotionsData);
+      }
+    }
+
+    if (this.updateQueue.rules !== null) {
+      store.setRules(this.updateQueue.rules);
+      this.updateQueue.rules = null;
+    }
+
     if (this.updateQueue.metrics !== null) {
       store.updateMetrics(this.updateQueue.metrics);
       this.updateQueue.metrics = null;
@@ -197,12 +335,15 @@ class WSClient {
 
     this.updateTimer = null;
 
-    // If there are more queued events, schedule another update
+    // If there are more queued updates, schedule another update
     if (
       this.updateQueue.events.length > 0 ||
       this.updateQueue.state !== null ||
       this.updateQueue.agents !== null ||
       this.updateQueue.districts !== null ||
+      this.updateQueue.causality !== null ||
+      this.updateQueue.emotions !== null ||
+      this.updateQueue.rules !== null ||
       this.updateQueue.metrics !== null
     ) {
       this.scheduleUpdate();

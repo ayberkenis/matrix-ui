@@ -43,6 +43,18 @@ export default function DocsPage() {
                 <code className="text-matrix-green">GET /version</code>
                 <p className="ml-4 mt-1">Get system version information (matrix_version, created_at, last_reset_at, reset_count, initialized)</p>
               </div>
+              <div>
+                <code className="text-matrix-green">GET /world/causality</code>
+                <p className="ml-4 mt-1">Get causality records showing cause-effect relationships (returns {"{ records: [...], total_records: N, returned: N }"})</p>
+              </div>
+              <div>
+                <code className="text-matrix-green">GET /world/emotions</code>
+                <p className="ml-4 mt-1">Get emotional state summary and recent traces (returns {"{ summary: {...}, recent_traces: [...], total_traces: N }"})</p>
+              </div>
+              <div>
+                <code className="text-matrix-green">GET /world/rules</code>
+                <p className="ml-4 mt-1">Get world rules (returns {"{ rules: [...], total_rules: N, returned: N }"})</p>
+              </div>
             </div>
           </section>
           
@@ -103,6 +115,48 @@ export default function DocsPage() {
   last_reset_at: string | null,
   reset_count: number,
   initialized: boolean
+}`}
+                </pre>
+              </div>
+              <div>
+                <code className="text-matrix-green">Causality Record:</code>
+                <pre className="ml-4 mt-1 text-xs bg-matrix-dark p-2 border border-matrix-green border-opacity-20 overflow-x-auto">
+{`{
+  cause: string,
+  effect: string,
+  confidence: number,
+  duration: number,
+  source: string,
+  turn: number,
+  timestamp: string
+}`}
+                </pre>
+              </div>
+              <div>
+                <code className="text-matrix-green">Emotions:</code>
+                <pre className="ml-4 mt-1 text-xs bg-matrix-dark p-2 border border-matrix-green border-opacity-20 overflow-x-auto">
+{`{
+  summary: {
+    fear: number,
+    anger: number,
+    hope: number,
+    joy: number,
+    sadness: number,
+    surprise: number
+  },
+  recent_traces: [{
+    event: string,
+    turn: number,
+    timestamp: string,
+    fear: number,
+    anger: number,
+    hope: number,
+    joy: number,
+    sadness: number,
+    surprise: number,
+    dominant: string
+  }],
+  total_traces: number
 }`}
                 </pre>
               </div>

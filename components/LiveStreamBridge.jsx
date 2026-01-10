@@ -9,47 +9,62 @@ export default function LiveStreamBridge() {
   const wsStatus = useWorldStore((state) => state.wsStatus);
 
   useEffect(() => {
-    // Initialize store with initial data
-    const initialize = async () => {
-      try {
-        const [state, agents, districts, events] = await Promise.all([
-          clientFetch("/state"),
-          clientFetch("/agents"),
-          clientFetch("/districts"),
-          clientFetch("/events"),
-        ]);
+    // Only fetch if store is empty (fallback if server data wasn't provided)
+    const store = useWorldStore.getState();
+    const needsInitialization = !store.state && store.agents.length === 0 && store.districts.length === 0;
 
-        // Handle different response formats - API might return { districts: [...] } or [...]
-        const normalizeArray = (data) => {
-          if (!data) return [];
-          if (Array.isArray(data)) return data;
-          if (data.districts) return data.districts;
-          if (data.agents) return data.agents;
-          if (data.events) return data.events;
-          return [];
-        };
+    if (needsInitialization) {
+      // Initialize store with initial data (fallback)
+      const initialize = async () => {
+        try {
+          const [state, agents, districts, events] = await Promise.all([
+            clientFetch("/state"),
+            clientFetch("/agents"),
+            clientFetch("/districts"),
+            clientFetch("/events"),
+          ]);
 
-        useWorldStore.getState().initialize({
-          state,
-          agents: normalizeArray(agents),
-          districts: normalizeArray(districts),
-          events: normalizeArray(events),
-        });
-      } catch (error) {
-        console.error("Failed to initialize:", error);
-      }
-    };
+          // Handle different response formats - API might return { districts: [...] } or [...]
+          const normalizeArray = (data) => {
+            if (!data) return [];
+            if (Array.isArray(data)) return data;
+            if (data.districts) return data.districts;
+            if (data.agents) return data.agents;
+            if (data.events) return data.events;
+            return [];
+          };
 
-    initialize();
+          store.initialize({
+            state,
+            agents: normalizeArray(agents),
+            districts: normalizeArray(districts),
+            events: normalizeArray(events),
+          });
+        } catch (error) {
+          console.error("Failed to initialize:", error);
+        }
+      };
+
+      initialize();
+    }
 
     // Connect WebSocket
     const wsClient = getWSClient();
     if (wsClient) {
-      // Sync event update interval from store
-      const storeInterval = useWorldStore.getState().eventUpdateInterval;
-      if (storeInterval) {
-        wsClient.setEventUpdateInterval(storeInterval);
+      // Sync intervals and pause states from store
+      const store = useWorldStore.getState();
+      if (store.eventUpdateInterval) {
+        wsClient.setEventUpdateInterval(store.eventUpdateInterval);
       }
+      if (store.causalityUpdateInterval) {
+        wsClient.setCausalityUpdateInterval(store.causalityUpdateInterval);
+      }
+      if (store.emotionsUpdateInterval) {
+        wsClient.setEmotionsUpdateInterval(store.emotionsUpdateInterval);
+      }
+      wsClient.setEventsPaused(store.eventsPaused || false);
+      wsClient.setCausalityPaused(store.causalityPaused || false);
+      wsClient.setEmotionsPaused(store.emotionsPaused || false);
       wsClient.connect();
     }
 
