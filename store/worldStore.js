@@ -17,6 +17,7 @@ export const useWorldStore = create((set, get) => ({
     cohesion: 0,
     expression: 0,
   },
+  version: null, // Version info from /version endpoint
   
   // Actions
   setWsStatus: (status) => set({ wsStatus: status }),
@@ -41,6 +42,8 @@ export const useWorldStore = create((set, get) => ({
   }),
   
   updateMetrics: (metrics) => set({ metrics }),
+  
+  setVersion: (version) => set({ version }),
   
   // Initialize with server data
   initialize: (data) => {

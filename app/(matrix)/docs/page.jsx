@@ -39,6 +39,10 @@ export default function DocsPage() {
                 <code className="text-matrix-green">GET /events</code>
                 <p className="ml-4 mt-1">Get recent events (returns {"{ events: [...], count: N }"})</p>
               </div>
+              <div>
+                <code className="text-matrix-green">GET /version</code>
+                <p className="ml-4 mt-1">Get system version information (matrix_version, created_at, last_reset_at, reset_count, initialized)</p>
+              </div>
             </div>
           </section>
           
@@ -87,6 +91,18 @@ export default function DocsPage() {
   agent_id: string,
   description: string,
   type: 'work' | 'social' | 'trade' | 'conflict' | 'theft' | 'economy' | null
+}`}
+                </pre>
+              </div>
+              <div>
+                <code className="text-matrix-green">Version:</code>
+                <pre className="ml-4 mt-1 text-xs bg-matrix-dark p-2 border border-matrix-green border-opacity-20 overflow-x-auto">
+{`{
+  matrix_version: string,
+  created_at: string,
+  last_reset_at: string | null,
+  reset_count: number,
+  initialized: boolean
 }`}
                 </pre>
               </div>

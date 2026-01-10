@@ -1,11 +1,14 @@
 import { t } from "../../../lib/i18n";
+import { serverFetch } from "../../../lib/matrixApi";
+import VersionDisplay from "../../../components/VersionDisplay";
 
 export const metadata = {
   title: "About - Living Matrix",
   description: "About the Living Matrix simulation",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const version = await serverFetch("/version");
   return (
     <div className="min-h-screen bg-matrix-darker p-8">
       <div className="max-w-4xl mx-auto">
@@ -62,6 +65,15 @@ export default function AboutPage() {
               "There are levels of survival we are prepared to accept."
             </span>
           </p>
+          
+          {version && (
+            <>
+              <h2 className="text-xl font-bold text-matrix-green text-matrix-glow mt-6 mb-3">
+                SYSTEM VERSION
+              </h2>
+              <VersionDisplay version={version} />
+            </>
+          )}
           
           <div className="mt-6 p-4 bg-matrix-dark border border-matrix-green border-opacity-20">
             <p className="text-matrix-green-dim text-xs font-mono leading-relaxed">

@@ -3,7 +3,18 @@ import { clientFetch } from '../lib/matrixApi'
 
 const getWsUrl = () => {
   if (typeof window === 'undefined') return null
-  return process.env.NEXT_PUBLIC_MATRIX_WS_URL || 'ws://localhost:8000/ws'
+  
+  // Check for explicit environment variable first
+  if (process.env.NEXT_PUBLIC_MATRIX_WS_URL) {
+    return process.env.NEXT_PUBLIC_MATRIX_WS_URL
+  }
+  
+  // Auto-detect: use production in production builds, localhost in dev
+  if (process.env.NODE_ENV === 'production') {
+    return 'wss://api.ayberkenis.com.tr/matrix/ws'
+  }
+  
+  return 'ws://localhost:8000/ws'
 }
 
 class WSClient {
