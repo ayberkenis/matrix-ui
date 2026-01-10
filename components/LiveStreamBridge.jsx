@@ -45,6 +45,11 @@ export default function LiveStreamBridge() {
     // Connect WebSocket
     const wsClient = getWSClient();
     if (wsClient) {
+      // Sync event update interval from store
+      const storeInterval = useWorldStore.getState().eventUpdateInterval;
+      if (storeInterval) {
+        wsClient.setEventUpdateInterval(storeInterval);
+      }
       wsClient.connect();
     }
 
