@@ -1,7 +1,7 @@
-import Header from "../../components/Header";
-import DashboardTabs from "../../components/DashboardTabs";
-import StoreInitializer from "../../components/StoreInitializer";
-import { serverFetch } from "../../lib/matrixApi";
+import Header from "../../../components/Header";
+import DashboardTabs from "../../../components/DashboardTabs";
+import StoreInitializer from "../../../components/StoreInitializer";
+import { serverFetch } from "../../../lib/matrixApi";
 
 export default async function MatrixDashboard() {
   // Fetch initial data on server

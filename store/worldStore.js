@@ -27,6 +27,10 @@ export const useWorldStore = create((set, get) => ({
   causality: null, // Causality records from /world/causality
   emotions: null, // Emotions data from /world/emotions
   rules: null, // Rules from /world/rules
+  flags: null, // World flags from /world/flags
+  escalations: null, // Escalations from /escalations
+  populationStats: null, // Population stats from /population/stats
+  districtCultures: {}, // District cultures: { districtId: cultureData }
 
   // Actions
   setWsStatus: (status) => set({ wsStatus: status }),
@@ -152,6 +156,17 @@ export const useWorldStore = create((set, get) => ({
       // Handle REST API response with rules array
       return { rules };
     }),
+
+  setFlags: (flags) => set({ flags }),
+  setEscalations: (escalations) => set({ escalations }),
+  setPopulationStats: (stats) => set({ populationStats: stats }),
+  setDistrictCulture: (districtId, culture) =>
+    set((state) => ({
+      districtCultures: {
+        ...state.districtCultures,
+        [districtId]: culture,
+      },
+    })),
 
   // Initialize with server data
   initialize: (data) => {

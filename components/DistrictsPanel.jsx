@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import * as Accordion from "@radix-ui/react-accordion";
 import { useWorldStore } from "../store/worldStore";
-import { t } from "../lib/i18n";
+import { useTranslation } from "../lib/useTranslation";
+import { getDistrictCulture } from "../lib/matrixApi";
 
 function ResourceBar({ label, value, color = "rgba(0, 255, 65, 0.8)" }) {
   const percentage = Math.min(Math.max(value * 100, 0), 100);
@@ -27,10 +30,30 @@ function ResourceBar({ label, value, color = "rgba(0, 255, 65, 0.8)" }) {
 }
 
 export default function DistrictsPanel() {
+  const t = useTranslation();
   const districts = useWorldStore((state) => state.districts);
+  const districtCultures = useWorldStore((state) => state.districtCultures);
+  const setDistrictCulture = useWorldStore((state) => state.setDistrictCulture);
 
   // Ensure districts is always an array
   const districtsArray = Array.isArray(districts) ? districts : [];
+
+  // Fetch culture for districts that don't have it yet
+  useEffect(() => {
+    districtsArray.forEach((district) => {
+      if (district.id && !districtCultures[district.id]) {
+        getDistrictCulture(district.id)
+          .then((data) => {
+            if (data?.culture) {
+              setDistrictCulture(district.id, data.culture);
+            }
+          })
+          .catch((err) => {
+            console.warn(`Failed to fetch culture for ${district.id}:`, err);
+          });
+      }
+    });
+  }, [districtsArray, districtCultures, setDistrictCulture]);
 
   return (
     <div className="bg-matrix-panel border-matrix border-matrix-green border-opacity-30 p-4 h-full flex flex-col lg:min-h-0">
@@ -42,20 +65,44 @@ export default function DistrictsPanel() {
         {districtsArray.length === 0 ? (
           <div className="text-matrix-green-dim text-sm">NO DISTRICTS</div>
         ) : (
-          <div className="space-y-4 pr-2">
+          <Accordion.Root
+            type="multiple"
+            defaultValue={[]}
+            className="space-y-2 pr-2"
+          >
             {districtsArray.map((district) => (
-              <div
+              <Accordion.Item
                 key={district.id}
-                className="border-matrix border-matrix-green border-opacity-20 p-3 bg-matrix-dark bg-opacity-50"
+                value={district.id}
+                className="border-matrix border-matrix-green border-opacity-20 bg-matrix-dark bg-opacity-50 overflow-hidden"
               >
-                <h3 className="text-matrix-green font-bold mb-3">
-                  {district.name}
-                  {district.scarcity && (
-                    <span className="ml-2 text-xs text-red-400">
-                      [SCARCITY]
-                    </span>
-                  )}
-                </h3>
+                <Accordion.Header>
+                  <Accordion.Trigger className="group w-full px-3 py-3 flex items-center justify-between text-left hover:bg-matrix-dark hover:bg-opacity-70 transition-all data-[state=open]:bg-matrix-dark data-[state=open]:bg-opacity-50">
+                    <h3 className="text-matrix-green font-bold">
+                      {district.name}
+                      {district.scarcity && (
+                        <span className="ml-2 text-xs text-red-400">
+                          [SCARCITY]
+                        </span>
+                      )}
+                    </h3>
+                    <svg
+                      className="w-4 h-4 text-matrix-green transition-transform duration-200 group-data-[state=open]:rotate-180"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </Accordion.Trigger>
+                </Accordion.Header>
+                <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <div className="px-3 pb-3">
 
                 {/* Tension - REST API format (0-100) or WebSocket format (0-1) */}
                 {district.tension !== undefined && (
@@ -266,9 +313,42 @@ export default function DistrictsPanel() {
                     </div>
                   </div>
                 )}
-              </div>
+
+                {/* Culture */}
+                {districtCultures[district.id] && (
+                  <div className="mt-3 pt-3 border-t border-matrix-green border-opacity-20">
+                    <div className="text-xs text-matrix-green font-bold mb-2">
+                      CULTURE:
+                    </div>
+                    <div className="space-y-1">
+                      <ResourceBar
+                        label="Collectivism"
+                        value={districtCultures[district.id].collectivism || 0}
+                        color="rgba(0, 255, 65, 0.6)"
+                      />
+                      <ResourceBar
+                        label="Obedience"
+                        value={districtCultures[district.id].obedience || 0}
+                        color="rgba(0, 255, 65, 0.7)"
+                      />
+                      <ResourceBar
+                        label="Aggression"
+                        value={districtCultures[district.id].aggression || 0}
+                        color="rgba(239, 68, 68, 0.7)"
+                      />
+                      <ResourceBar
+                        label="Risk Tolerance"
+                        value={districtCultures[district.id].risk_tolerance || 0}
+                        color="rgba(255, 193, 7, 0.7)"
+                      />
+                    </div>
+                  </div>
+                )}
+                  </div>
+                </Accordion.Content>
+              </Accordion.Item>
             ))}
-          </div>
+          </Accordion.Root>
         )}
       </div>
     </div>

@@ -1,10 +1,11 @@
 'use client'
 
 import { useWorldStore } from '../store/worldStore'
-import { t } from '../lib/i18n'
+import { useTranslation } from '../lib/useTranslation'
 
 export default function WorldClock() {
   const worldState = useWorldStore((state) => state.state)
+  const t = useTranslation()
   
   if (!worldState) {
     return (

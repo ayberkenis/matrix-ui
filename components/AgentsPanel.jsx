@@ -2,18 +2,45 @@
 
 import { useState } from "react";
 import { useWorldStore } from "../store/worldStore";
-import { t } from "../lib/i18n";
+import { useTranslation } from "../lib/useTranslation";
 
 function AgentCard({ agent, onSelect }) {
+  const t = useTranslation();
+  const relationshipsCount =
+    agent.relationships &&
+    typeof agent.relationships === "object" &&
+    !Array.isArray(agent.relationships)
+      ? Object.keys(agent.relationships).length
+      : 0;
+  const beliefsCount =
+    agent.beliefs &&
+    typeof agent.beliefs === "object" &&
+    !Array.isArray(agent.beliefs)
+      ? Object.keys(agent.beliefs).length
+      : 0;
+
   return (
     <div
       onClick={() => onSelect(agent)}
       className="border-matrix border-matrix-green border-opacity-20 p-3 mb-2 cursor-pointer hover:border-opacity-50 hover:bg-matrix-dark hover:bg-opacity-30 transition-all"
     >
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-matrix-green font-bold">
-          {agent.name || `Agent ${agent.id}`}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-matrix-green font-bold">
+            {agent.name || `Agent ${agent.id}`}
+          </h3>
+          {agent.is_alive !== undefined && (
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded ${
+                agent.is_alive
+                  ? "bg-matrix-green bg-opacity-20 text-matrix-green border border-matrix-green border-opacity-50"
+                  : "bg-red-500 bg-opacity-20 text-red-400 border border-red-500 border-opacity-50"
+              }`}
+            >
+              {agent.is_alive ? "●" : "✕"}
+            </span>
+          )}
+        </div>
         <span className="text-xs text-matrix-green-dim">{agent.id}</span>
       </div>
       <div className="text-xs text-matrix-green-dim space-y-1">
@@ -25,6 +52,12 @@ function AgentCard({ agent, onSelect }) {
           <span className="text-matrix-green">{t("agents.role")}</span>:{" "}
           {agent.role || "--"}
         </div>
+        {agent.age !== undefined && (
+          <div>
+            <span className="text-matrix-green">Age</span>: {agent.age} /{" "}
+            {agent.lifespan || "?"} turns
+          </div>
+        )}
         <div>
           <span className="text-matrix-green">Action</span>:{" "}
           {agent.current_action || "--"}
@@ -32,24 +65,62 @@ function AgentCard({ agent, onSelect }) {
         {agent.mood !== undefined && (
           <div>
             <span className="text-matrix-green">{t("agents.mood")}</span>:{" "}
-            {(agent.mood * 100).toFixed(0)}%
+            <span
+              className={
+                agent.mood > 0.3
+                  ? "text-green-400"
+                  : agent.mood < -0.3
+                  ? "text-red-400"
+                  : "text-yellow-400"
+              }
+            >
+              {(agent.mood * 100).toFixed(0)}%
+            </span>
           </div>
         )}
+        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-matrix-green border-opacity-10">
+          {relationshipsCount > 0 && (
+            <div className="text-xs">
+              <span className="text-matrix-green-dim">Relations:</span>{" "}
+              <span className="text-blue-400">{relationshipsCount}</span>
+            </div>
+          )}
+          {beliefsCount > 0 && (
+            <div className="text-xs">
+              <span className="text-matrix-green-dim">Beliefs:</span>{" "}
+              <span className="text-purple-400">{beliefsCount}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 function AgentDetail({ agent, onClose }) {
+  const t = useTranslation();
   if (!agent) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
       <div className="bg-matrix-dark border-matrix border-matrix-green border-opacity-50 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto scrollbar-matrix">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-matrix-green text-matrix-glow">
-            {agent.name || `Agent ${agent.id}`}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-matrix-green text-matrix-glow">
+              {agent.name || `Agent ${agent.id}`}
+            </h2>
+            {agent.is_alive !== undefined && (
+              <div
+                className={`px-3 py-1 rounded text-xs font-bold ${
+                  agent.is_alive
+                    ? "bg-matrix-green bg-opacity-20 text-matrix-green border border-matrix-green border-opacity-50"
+                    : "bg-red-500 bg-opacity-20 text-red-400 border border-red-500 border-opacity-50"
+                }`}
+              >
+                {agent.is_alive ? "● ALIVE" : "✕ DECEASED"}
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-matrix-green hover:text-matrix-green-bright border border-matrix-green border-opacity-30 px-4 py-2 hover:border-opacity-60 transition-all"
@@ -95,6 +166,40 @@ function AgentDetail({ agent, onClose }) {
               : {agent.current_action}
             </div>
           )}
+          {agent.age !== undefined && (
+            <div>
+              <span className="text-matrix-green font-bold">Age</span>:{" "}
+              {agent.age} / {agent.lifespan || "?"} turns
+            </div>
+          )}
+          {agent.is_alive !== undefined && (
+            <div>
+              <span className="text-matrix-green font-bold">Status</span>:{" "}
+              <span
+                className={
+                  agent.is_alive ? "text-matrix-green" : "text-red-400"
+                }
+              >
+                {agent.is_alive ? "ALIVE" : "DECEASED"}
+              </span>
+            </div>
+          )}
+          {agent.children_ids &&
+            Array.isArray(agent.children_ids) &&
+            agent.children_ids.length > 0 && (
+              <div>
+                <span className="text-matrix-green font-bold">Children</span>:{" "}
+                {agent.children_ids.join(", ")}
+              </div>
+            )}
+          {agent.parents_ids &&
+            Array.isArray(agent.parents_ids) &&
+            agent.parents_ids.length > 0 && (
+              <div>
+                <span className="text-matrix-green font-bold">Parents</span>:{" "}
+                {agent.parents_ids.join(", ")}
+              </div>
+            )}
 
           {/* Needs - now an object with numeric values */}
           {agent.needs &&
@@ -202,55 +307,142 @@ function AgentDetail({ agent, onClose }) {
             </div>
           )}
 
-          {/* Relationships (from WebSocket) */}
-          {agent.relationships && (
+          {/* Relationships - new structure: object with agent IDs as keys */}
+          {agent.relationships &&
+          typeof agent.relationships === "object" &&
+          !Array.isArray(agent.relationships) &&
+          Object.keys(agent.relationships).length > 0 ? (
+            <div>
+              <span className="text-matrix-green font-bold">
+                RELATIONSHIPS ({Object.keys(agent.relationships).length}):
+              </span>
+              <div className="mt-2 space-y-2">
+                {Object.entries(agent.relationships).map(([targetId, rel]) => (
+                  <div
+                    key={targetId}
+                    className="text-xs border border-matrix-green border-opacity-20 p-2 bg-matrix-dark bg-opacity-30"
+                  >
+                    <div className="text-matrix-green font-bold mb-1">
+                      {targetId}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {rel.affection !== undefined && (
+                        <div>
+                          <span className="text-matrix-green-dim">
+                            Affection:
+                          </span>{" "}
+                          <span className="text-blue-400">
+                            {(rel.affection * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {rel.trust !== undefined && (
+                        <div>
+                          <span className="text-matrix-green-dim">Trust:</span>{" "}
+                          <span className="text-matrix-green">
+                            {(rel.trust * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {rel.familiarity !== undefined && (
+                        <div>
+                          <span className="text-matrix-green-dim">
+                            Familiarity:
+                          </span>{" "}
+                          <span className="text-yellow-400">
+                            {(rel.familiarity * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {rel.last_interaction !== undefined && (
+                        <div>
+                          <span className="text-matrix-green-dim">
+                            Last interaction:
+                          </span>{" "}
+                          <span className="text-matrix-green-dim">
+                            Turn {rel.last_interaction}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
             <div>
               <span className="text-matrix-green font-bold">
                 RELATIONSHIPS:
               </span>
-              <div className="mt-2 space-y-2">
-                {agent.relationships.allies &&
-                  agent.relationships.allies.length > 0 && (
-                    <div>
-                      <div className="text-xs text-matrix-green-dim mb-1">
-                        ALLIES:
-                      </div>
-                      {agent.relationships.allies.map((ally, idx) => (
-                        <div key={idx} className="text-xs ml-2">
-                          {ally.id}: Trust {(ally.trust * 100).toFixed(0)}%
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                {agent.relationships.enemies &&
-                  agent.relationships.enemies.length > 0 && (
-                    <div>
-                      <div className="text-xs text-red-400 mb-1">ENEMIES:</div>
-                      {agent.relationships.enemies.map((enemy, idx) => (
-                        <div key={idx} className="text-xs ml-2 text-red-400">
-                          {enemy.id}: Conflict{" "}
-                          {(enemy.conflict * 100).toFixed(0)}%
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                {agent.relationships.dependents &&
-                  agent.relationships.dependents.length > 0 && (
-                    <div>
-                      <div className="text-xs text-yellow-400 mb-1">
-                        DEPENDENTS:
-                      </div>
-                      {agent.relationships.dependents.map((dep, idx) => (
-                        <div key={idx} className="text-xs ml-2 text-yellow-400">
-                          {dep.id}: Dependency{" "}
-                          {(dep.dependency * 100).toFixed(0)}%
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="mt-2 text-xs text-matrix-green-dim">
+                No relationships
               </div>
             </div>
           )}
+
+          {/* Beliefs */}
+          {agent.beliefs &&
+            typeof agent.beliefs === "object" &&
+            !Array.isArray(agent.beliefs) &&
+            Object.keys(agent.beliefs).length > 0 && (
+              <div>
+                <span className="text-matrix-green font-bold">BELIEFS:</span>
+                <div className="mt-2 space-y-2">
+                  {Object.entries(agent.beliefs).map(([topic, belief]) => (
+                    <div
+                      key={topic}
+                      className="text-xs border border-matrix-green border-opacity-20 p-2"
+                    >
+                      <div className="text-matrix-green font-bold mb-1">
+                        {belief.topic || topic}
+                      </div>
+                      <div className="space-y-1">
+                        <div>
+                          <span className="text-matrix-green-dim">
+                            Polarity:
+                          </span>{" "}
+                          <span
+                            className={
+                              belief.polarity > 0
+                                ? "text-green-400"
+                                : belief.polarity < 0
+                                ? "text-red-400"
+                                : "text-matrix-green-dim"
+                            }
+                          >
+                            {(belief.polarity * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-matrix-green-dim">
+                            Confidence:
+                          </span>{" "}
+                          <span className="text-matrix-green">
+                            {(belief.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-matrix-green-dim">Source:</span>{" "}
+                          <span className="text-matrix-green-dim capitalize">
+                            {belief.source || "unknown"}
+                          </span>
+                        </div>
+                        {belief.last_updated_turn !== undefined && (
+                          <div>
+                            <span className="text-matrix-green-dim">
+                              Updated:
+                            </span>{" "}
+                            <span className="text-matrix-green-dim">
+                              Turn {belief.last_updated_turn}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
         </div>
       </div>
     </div>
@@ -258,6 +450,7 @@ function AgentDetail({ agent, onClose }) {
 }
 
 export default function AgentsPanel() {
+  const t = useTranslation();
   const agents = useWorldStore((state) => state.agents);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
 

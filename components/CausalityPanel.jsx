@@ -3,9 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useWorldStore } from "../store/worldStore";
 import { clientFetch } from "../lib/matrixApi";
-import { t } from "../lib/i18n";
+import { useTranslation } from "../lib/useTranslation";
 
 function CausalityItem({ record, index, hasBeenSeen }) {
+  const t = useTranslation();
   const [isNew, setIsNew] = useState(false);
   const itemRef = useRef(null);
   const recordKey = `${record.turn}-${record.cause}-${record.effect}`;
@@ -55,6 +56,7 @@ function CausalityItem({ record, index, hasBeenSeen }) {
 }
 
 export default function CausalityPanel() {
+  const t = useTranslation();
   const causality = useWorldStore((state) => state.causality);
   const setCausality = useWorldStore((state) => state.setCausality);
   const causalityUpdateInterval = useWorldStore(

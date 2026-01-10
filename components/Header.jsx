@@ -1,11 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import { t } from "../lib/i18n";
+import { useTranslation } from "../lib/useTranslation";
+import { useLocale } from "../lib/localeContext";
 import ConnectionStatus from "./ConnectionStatus";
 import WorldClock from "./WorldClock";
 import WeatherDisplay from "./WeatherDisplay";
 import VersionInfo from "./VersionInfo";
 
 export default function Header({ className = "" }) {
+  const t = useTranslation();
+  const locale = useLocale();
+  const localePrefix = locale === 'tr' ? '/tr' : '';
+  
   return (
     <header
       className={`border-b border-matrix border-matrix-green border-opacity-30 bg-matrix-panel px-6 py-4 ${className}`}
@@ -26,7 +33,7 @@ export default function Header({ className = "" }) {
         <div className="h-4 w-px bg-matrix-green bg-opacity-30 hidden sm:block" />
         <div className="flex items-center gap-3 sm:gap-4 font-mono flex-wrap">
           <Link
-            href="/about"
+            href={`${localePrefix}/about`}
             className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
           >
             {t("footer.about")}
@@ -40,19 +47,19 @@ export default function Header({ className = "" }) {
             {t("footer.github")}
           </a>
           <Link
-            href="/why"
+            href={`${localePrefix}/why`}
             className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
           >
             {t("footer.why")}
           </Link>
           <Link
-            href="/faq"
+            href={`${localePrefix}/faq`}
             className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
           >
             {t("footer.faq")}
           </Link>
           <Link
-            href="/docs"
+            href={`${localePrefix}/docs`}
             className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
           >
             {t("footer.docs")}

@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useWorldStore } from "../store/worldStore";
-import { t } from "../lib/i18n";
+import { useTranslation } from "../lib/useTranslation";
+import { getEscalations } from "../lib/matrixApi";
 
 function EventItem({ event, index }) {
+  const t = useTranslation();
   const [isNew, setIsNew] = useState(true);
   const itemRef = useRef(null);
 
@@ -73,6 +75,7 @@ function EventItem({ event, index }) {
 }
 
 export default function EventsPanel() {
+  const t = useTranslation();
   const events = useWorldStore((state) => state.events);
   const eventUpdateInterval = useWorldStore(
     (state) => state.eventUpdateInterval
@@ -82,6 +85,28 @@ export default function EventsPanel() {
   );
   const eventsPaused = useWorldStore((state) => state.eventsPaused);
   const setEventsPaused = useWorldStore((state) => state.setEventsPaused);
+  const escalations = useWorldStore((state) => state.escalations);
+  const setEscalations = useWorldStore((state) => state.setEscalations);
+
+  // Fetch escalations on mount
+  useEffect(() => {
+    getEscalations()
+      .then((data) => {
+        if (data) setEscalations(data);
+      })
+      .catch((err) => console.warn("Failed to fetch escalations:", err));
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      getEscalations()
+        .then((data) => {
+          if (data) setEscalations(data);
+        })
+        .catch((err) => console.warn("Failed to fetch escalations:", err));
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [setEscalations]);
 
   // Ensure events is always an array
   const eventsArray = Array.isArray(events) ? events : [];
@@ -151,6 +176,40 @@ export default function EventsPanel() {
       </div>
 
       <div className="flex-1 lg:overflow-y-auto lg:min-h-0 scrollbar-matrix">
+        {/* Escalations Section */}
+        {escalations && (
+          <div className="mb-4 pb-4 border-b border-matrix-green border-opacity-30">
+            <div className="text-xs text-matrix-green font-bold mb-2">
+              ESCALATIONS
+            </div>
+            <div className="text-xs text-matrix-green-dim mb-1">
+              Active: {escalations.active_count || 0} / Total Chains:{" "}
+              {escalations.total_chains || 0}
+            </div>
+            {escalations.chains && escalations.chains.length > 0 ? (
+              <div className="space-y-2 mt-2">
+                {escalations.chains.map((chain, idx) => (
+                  <div
+                    key={idx}
+                    className="border border-red-500 border-opacity-30 p-2 bg-red-500 bg-opacity-10"
+                  >
+                    <div className="text-xs text-red-400 font-bold">
+                      Chain #{idx + 1}
+                    </div>
+                    {/* Add more chain details if available */}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-matrix-green-dim">
+                No active escalation chains
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Events Section */}
+        <div className="text-xs text-matrix-green font-bold mb-2">EVENTS</div>
         {eventsArray.length === 0 ? (
           <div className="text-matrix-green-dim text-sm">
             {t("events.noEvents")}

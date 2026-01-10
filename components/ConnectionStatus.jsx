@@ -1,10 +1,11 @@
 "use client";
 
 import { useWorldStore } from "../store/worldStore";
-import { t } from "../lib/i18n";
+import { useTranslation } from "../lib/useTranslation";
 
 export default function ConnectionStatus() {
   const wsStatus = useWorldStore((state) => state.wsStatus);
+  const t = useTranslation();
 
   const statusColors = {
     connected: "text-matrix-green",

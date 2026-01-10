@@ -3,9 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { pauseSimulation, resumeSimulation, setSpeed } from '../lib/matrixApi'
-import { t } from '../lib/i18n'
+import { useTranslation } from '../lib/useTranslation'
+import { useLocale } from '../lib/localeContext'
 
 export default function ControlPanel({ className = "" }) {
+  const t = useTranslation();
+  const locale = useLocale();
+  const localePrefix = locale === 'tr' ? '/tr' : '';
   const [isPaused, setIsPaused] = useState(false)
   const [speed, setSpeedValue] = useState(1000)
   const [showResetModal, setShowResetModal] = useState(false)
@@ -100,7 +104,7 @@ export default function ControlPanel({ className = "" }) {
             <div className="h-4 w-px bg-matrix-green bg-opacity-30 hidden sm:block" />
             <div className="flex items-center gap-3 sm:gap-4 font-mono flex-wrap">
               <Link
-                href="/about"
+                href={`${localePrefix}/about`}
                 className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
               >
                 {t('footer.about')}
@@ -114,19 +118,19 @@ export default function ControlPanel({ className = "" }) {
                 {t('footer.github')}
               </a>
               <Link
-                href="/why"
+                href={`${localePrefix}/why`}
                 className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
               >
                 {t('footer.why')}
               </Link>
               <Link
-                href="/faq"
+                href={`${localePrefix}/faq`}
                 className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
               >
                 {t('footer.faq')}
               </Link>
               <Link
-                href="/docs"
+                href={`${localePrefix}/docs`}
                 className="text-matrix-green-dim hover:text-matrix-green hover:text-matrix-glow transition-all cursor-pointer"
               >
                 {t('footer.docs')}
