@@ -1,81 +1,83 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useWorldStore } from "../../../../store/worldStore";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { getStateImageUrl } from "../../../../lib/matrixApi";
 import Link from "next/link";
 
+const REFRESH_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
 export default function StateVisualizationPage() {
-  const worldState = useWorldStore((state) => state.state);
   const [imageUrl, setImageUrl] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [metadata, setMetadata] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const imageUrlRef = useRef(null);
 
-  useEffect(() => {
-    const loadImage = async () => {
-      try {
-        setIsLoading(true);
-        setImageError(false);
+  const loadImage = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setImageError(false);
 
-        const baseUrl = getStateImageUrl();
-        const timestamp = worldState?.timestamp || Date.now();
-        const url = `${baseUrl}?t=${timestamp}`;
+      const baseUrl = getStateImageUrl();
+      const timestamp = Date.now();
+      const url = `${baseUrl}?t=${timestamp}`;
 
-        // Fetch image with headers to get metadata
-        const response = await fetch(url, {
-          method: "GET",
-          cache: "no-cache",
-        });
+      // Fetch image with headers to get metadata
+      const response = await fetch(url, {
+        method: "GET",
+        cache: "no-cache",
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        // Extract metadata from headers
-        const headers = {
-          "X-Simulation-Day": response.headers.get("X-Simulation-Day"),
-          "X-Simulation-Hour": response.headers.get("X-Simulation-Hour"),
-          "X-Simulation-Turn": response.headers.get("X-Simulation-Turn"),
-          "X-State-Hash": response.headers.get("X-State-Hash"),
-          "X-Prompt-Hash": response.headers.get("X-Prompt-Hash"),
-          "X-Generated-At": response.headers.get("X-Generated-At"),
-          "X-Generation-Time-Ms": response.headers.get("X-Generation-Time-Ms"),
-        };
-
-        setMetadata(headers);
-
-        // Create object URL from blob
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setImageUrl(objectUrl);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to load state image:", error);
-        setImageError(true);
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-    };
 
+      // Extract metadata from headers
+      const headers = {
+        "X-Simulation-Day": response.headers.get("X-Simulation-Day"),
+        "X-Simulation-Hour": response.headers.get("X-Simulation-Hour"),
+        "X-Simulation-Turn": response.headers.get("X-Simulation-Turn"),
+        "X-State-Hash": response.headers.get("X-State-Hash"),
+        "X-Prompt-Hash": response.headers.get("X-Prompt-Hash"),
+        "X-Generated-At": response.headers.get("X-Generated-At"),
+        "X-Generation-Time-Ms": response.headers.get("X-Generation-Time-Ms"),
+      };
+
+      setMetadata(headers);
+
+      // Create object URL from blob
+      const blob = await response.blob();
+
+      // Revoke old URL before setting new one
+      if (imageUrlRef.current) {
+        URL.revokeObjectURL(imageUrlRef.current);
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      imageUrlRef.current = objectUrl;
+      setImageUrl(objectUrl);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Failed to load state image:", error);
+      setImageError(true);
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial load and 10-minute refresh interval
+  useEffect(() => {
     loadImage();
 
-    // Cleanup object URL on unmount
+    const intervalId = setInterval(loadImage, REFRESH_INTERVAL_MS);
+
+    // Cleanup on unmount
     return () => {
-      if (imageUrl) {
-        URL.revokeObjectURL(imageUrl);
+      clearInterval(intervalId);
+      if (imageUrlRef.current) {
+        URL.revokeObjectURL(imageUrlRef.current);
       }
     };
-  }, [worldState?.timestamp]);
-
-  // Refresh image when state updates
-  useEffect(() => {
-    if (worldState?.timestamp && imageUrl) {
-      // Revoke old URL and reload
-      URL.revokeObjectURL(imageUrl);
-      setImageUrl(null);
-      setIsLoading(true);
-    }
-  }, [worldState?.timestamp]);
+  }, [loadImage]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
