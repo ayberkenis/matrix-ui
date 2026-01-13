@@ -152,9 +152,16 @@ export default function AgentsTable() {
     orderBy,
     orderDir,
   });
+  const isInitialMount = useRef(true);
 
-  // Initial load - reset when filters or sorting change
+  // Initial load - fetch on mount and reset when filters or sorting change
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchAgents(true);
+      return;
+    }
+
     const filtersChanged =
       prevFiltersRef.current.district !== district ||
       prevFiltersRef.current.role !== role ||
