@@ -1,12 +1,12 @@
 export const metadata = {
-  title: "SSS - Living Matrix",
+  title: "SSS - Matrix",
   description: "Sık sorulan sorular",
 };
 
 const faqItems = [
   {
-    question: "Living Matrix nedir?",
-    answer: "Living Matrix, özerk ajanlarla dolu sanal bir dünyada karmaşık sosyal, ekonomik ve çevresel dinamikleri modelleyen bir ajan tabanlı simülasyon sistemidir.",
+    question: "Matrix nedir?",
+    answer: "Matrix, özerk ajanlarla dolu sanal bir dünyada karmaşık sosyal, ekonomik ve çevresel dinamikleri modelleyen bir ajan tabanlı simülasyon sistemidir.",
   },
   {
     question: "Ajanlar nasıl davranır?",

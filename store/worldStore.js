@@ -97,8 +97,8 @@ export const useWorldStore = create((set, get) => ({
         events = [eventWithId, ...state.events];
       }
 
-      // Keep last 200
-      return { events: events.slice(0, 200) };
+      // Keep last 150 (reduced from 200 to save memory)
+      return { events: events.slice(0, 150) };
     }),
 
   setEvents: (events) =>
@@ -123,8 +123,8 @@ export const useWorldStore = create((set, get) => ({
       if (causality?.new_records && Array.isArray(causality.new_records)) {
         const currentRecords = state.causality?.records || [];
         const newRecords = causality.new_records;
-        // Add new records to the beginning, keep last 100
-        const merged = [...newRecords, ...currentRecords].slice(0, 100);
+        // Add new records to the beginning, keep last 75 (reduced from 100 to save memory)
+        const merged = [...newRecords, ...currentRecords].slice(0, 75);
         return { causality: { ...causality, records: merged } };
       }
       // Handle REST API response with records array
@@ -136,8 +136,8 @@ export const useWorldStore = create((set, get) => ({
       if (emotions?.recent_traces && Array.isArray(emotions.recent_traces)) {
         const currentTraces = state.emotions?.recent_traces || [];
         const newTraces = emotions.recent_traces;
-        // Add new traces to the beginning, keep last 50
-        const merged = [...newTraces, ...currentTraces].slice(0, 50);
+        // Add new traces to the beginning, keep last 40 (reduced from 50 to save memory)
+        const merged = [...newTraces, ...currentTraces].slice(0, 40);
         return { emotions: { ...emotions, recent_traces: merged } };
       }
       // Handle REST API response with full data
@@ -149,8 +149,8 @@ export const useWorldStore = create((set, get) => ({
       if (rules?.new_rules && Array.isArray(rules.new_rules)) {
         const currentRules = state.rules?.rules || [];
         const newRules = rules.new_rules;
-        // Add new rules to the beginning, keep last 50
-        const merged = [...newRules, ...currentRules].slice(0, 50);
+        // Add new rules to the beginning, keep last 40 (reduced from 50 to save memory)
+        const merged = [...newRules, ...currentRules].slice(0, 40);
         return { rules: { ...rules, rules: merged } };
       }
       // Handle REST API response with rules array

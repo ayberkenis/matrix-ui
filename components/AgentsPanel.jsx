@@ -1,23 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
+import Link from "next/link";
 import { useWorldStore } from "../store/worldStore";
 import { useTranslation } from "../lib/useTranslation";
+import InfoPopup from "./InfoPopup";
 
-function AgentCard({ agent, onSelect }) {
+const AgentCard = memo(function AgentCard({ agent, onSelect }) {
   const t = useTranslation();
-  const relationshipsCount =
-    agent.relationships &&
-    typeof agent.relationships === "object" &&
-    !Array.isArray(agent.relationships)
+  const relationshipsCount = useMemo(() => {
+    return agent.relationships &&
+      typeof agent.relationships === "object" &&
+      !Array.isArray(agent.relationships)
       ? Object.keys(agent.relationships).length
       : 0;
-  const beliefsCount =
-    agent.beliefs &&
-    typeof agent.beliefs === "object" &&
-    !Array.isArray(agent.beliefs)
+  }, [agent.relationships]);
+
+  const beliefsCount = useMemo(() => {
+    return agent.beliefs &&
+      typeof agent.beliefs === "object" &&
+      !Array.isArray(agent.beliefs)
       ? Object.keys(agent.beliefs).length
       : 0;
+  }, [agent.beliefs]);
 
   return (
     <div
@@ -92,12 +97,19 @@ function AgentCard({ agent, onSelect }) {
             </div>
           )}
         </div>
+        <Link
+          href={`/agents/${agent.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-2 block text-center text-xs font-mono px-2 py-1 border border-matrix-green border-opacity-30 hover:border-opacity-60 transition-all bg-matrix-dark text-matrix-green hover:text-matrix-green-bright"
+        >
+          EXAMINE →
+        </Link>
       </div>
     </div>
   );
-}
+});
 
-function AgentDetail({ agent, onClose }) {
+const AgentDetail = memo(function AgentDetail({ agent, onClose }) {
   const t = useTranslation();
   if (!agent) return null;
 
@@ -447,39 +459,233 @@ function AgentDetail({ agent, onClose }) {
       </div>
     </div>
   );
-}
+});
 
 export default function AgentsPanel() {
   const t = useTranslation();
   const agents = useWorldStore((state) => state.agents);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
 
-  // Ensure agents is always an array
-  const agentsArray = Array.isArray(agents) ? agents : [];
+  // Ensure agents is always an array - memoized to prevent unnecessary recalculations
+  const agentsArray = useMemo(() => {
+    return Array.isArray(agents) ? agents : [];
+  }, [agents]);
 
   // Find the current agent from the store based on selectedAgentId
   // This ensures the detail modal always shows the latest data from WebSocket
-  const selectedAgent = selectedAgentId
-    ? agentsArray.find((agent) => agent.id === selectedAgentId)
-    : null;
+  const selectedAgent = useMemo(() => {
+    return selectedAgentId
+      ? agentsArray.find((agent) => agent.id === selectedAgentId)
+      : null;
+  }, [selectedAgentId, agentsArray]);
+
+  const handleSelectAgent = useCallback((agent) => {
+    setSelectedAgentId(agent.id);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedAgentId(null);
+  }, []);
+
+  const agentsInfoContent = (
+    <>
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">AGENTS OVERVIEW</h3>
+        <p className="mb-3">
+          Agents are the individual entities that populate the Matrix
+          simulation. Each agent has a unique ID, role, location, and a complex
+          internal state including needs, goals, relationships, and beliefs.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">BASIC INFORMATION</h3>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>ID:</strong> Unique identifier for the agent
+          </li>
+          <li>
+            <strong>Name:</strong> Agent's display name (may be auto-generated)
+          </li>
+          <li>
+            <strong>District:</strong> The district where the agent is located
+          </li>
+          <li>
+            <strong>Location:</strong> Specific location within the district
+          </li>
+          <li>
+            <strong>Role:</strong> Agent's function (e.g., worker, trader,
+            leader)
+          </li>
+          <li>
+            <strong>Status:</strong> ● = Alive, ✕ = Deceased
+          </li>
+          <li>
+            <strong>Age:</strong> Current age / Maximum lifespan (in turns)
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">MOOD</h3>
+        <p className="mb-3">
+          Mood represents the agent's emotional state (-1 to +1, displayed as
+          -100% to +100%). Positive values indicate happiness, negative values
+          indicate distress. Mood affects decision-making and interactions.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">CURRENT ACTION</h3>
+        <p className="mb-3">
+          The action the agent is currently performing. This updates in
+          real-time as agents interact with the simulation.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">NEEDS</h3>
+        <p className="mb-2">
+          Needs represent what the agent requires to survive and thrive. Each
+          need is displayed as a percentage (0-100%):
+        </p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>High values (&gt;80%) indicate critical unmet needs (red)</li>
+          <li>Medium values (50-80%) show moderate need (yellow)</li>
+          <li>Low values (&lt;50%) indicate satisfied needs (green)</li>
+        </ul>
+        <p className="mb-3">
+          Common needs include food, shelter, safety, social connection, etc.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">GOALS</h3>
+        <p className="mb-3">
+          Goals are the agent's current objectives. Agents pursue goals based on
+          their needs, relationships, and beliefs. Goals are displayed as badges
+          and update dynamically.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">INVENTORY</h3>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>Food:</strong> Food units the agent possesses
+          </li>
+          <li>
+            <strong>Credits:</strong> Currency/wealth available
+          </li>
+          <li>
+            <strong>Tools:</strong> Equipment and resources owned
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">INTENT</h3>
+        <p className="mb-3">
+          Intent shows the agent's current motivations and planned actions.
+          Values are percentages (0-100%) indicating the strength of each intent
+          category. Intent drives agent behavior.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">RELATIONSHIPS</h3>
+        <p className="mb-2">
+          Relationships track the agent's connections with other agents. Each
+          relationship includes:
+        </p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>Affection:</strong> Emotional bond (-1 to +1, shown as %)
+          </li>
+          <li>
+            <strong>Trust:</strong> Level of confidence in the other agent (0-1,
+            shown as %)
+          </li>
+          <li>
+            <strong>Familiarity:</strong> How well they know each other (0-1,
+            shown as %)
+          </li>
+          <li>
+            <strong>Last Interaction:</strong> Turn number of their last meeting
+          </li>
+        </ul>
+        <p className="mb-3">
+          Relationships influence agent decisions, trade, cooperation, and
+          conflict.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">BELIEFS</h3>
+        <p className="mb-2">
+          Beliefs represent the agent's opinions and knowledge about various
+          topics. Each belief includes:
+        </p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>Topic:</strong> What the belief is about
+          </li>
+          <li>
+            <strong>Polarity:</strong> Positive (green) or negative (red) stance
+            (-1 to +1, shown as %)
+          </li>
+          <li>
+            <strong>Confidence:</strong> How certain the agent is (0-1, shown as
+            %)
+          </li>
+          <li>
+            <strong>Source:</strong> How the belief was acquired
+          </li>
+          <li>
+            <strong>Updated:</strong> Turn when the belief was last modified
+          </li>
+        </ul>
+        <p className="mb-3">
+          Beliefs affect how agents interpret events and interact with others.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">FAMILY</h3>
+        <p className="mb-3">Agents may have family connections:</p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>Children IDs:</strong> List of agent IDs for offspring
+          </li>
+          <li>
+            <strong>Parents IDs:</strong> List of agent IDs for parents
+          </li>
+        </ul>
+      </div>
+    </>
+  );
 
   return (
     <>
       <div className="bg-matrix-panel border-matrix border-matrix-green border-opacity-30 p-4 h-full flex flex-col lg:min-h-0">
-        <h2 className="text-lg font-bold text-matrix-green text-matrix-glow mb-4 tracking-wider flex-shrink-0">
-          {t("panels.agents")}
-        </h2>
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <h2 className="text-lg font-bold text-matrix-green text-matrix-glow tracking-wider">
+            {t("panels.agents")}
+          </h2>
+          <InfoPopup title="AGENTS DATA GUIDE" content={agentsInfoContent} />
+        </div>
 
         <div className="flex-1 lg:overflow-y-auto lg:min-h-0 scrollbar-matrix">
           {agentsArray.length === 0 ? (
             <div className="text-matrix-green-dim text-sm">NO AGENTS</div>
           ) : (
             <div className="pr-2">
-              {agentsArray.map((agent) => (
+              {/* Limit displayed agents to 200 to reduce DOM nodes and improve performance */}
+              {agentsArray.slice(0, 200).map((agent) => (
                 <AgentCard
                   key={agent.id}
                   agent={agent}
-                  onSelect={(agent) => setSelectedAgentId(agent.id)}
+                  onSelect={handleSelectAgent}
                 />
               ))}
             </div>
@@ -487,10 +693,7 @@ export default function AgentsPanel() {
         </div>
       </div>
 
-      <AgentDetail
-        agent={selectedAgent}
-        onClose={() => setSelectedAgentId(null)}
-      />
+      <AgentDetail agent={selectedAgent} onClose={handleCloseDetail} />
     </>
   );
 }

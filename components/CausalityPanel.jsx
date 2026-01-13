@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, memo, useMemo } from "react";
 import { useWorldStore } from "../store/worldStore";
 import { clientFetch } from "../lib/matrixApi";
 import { useTranslation } from "../lib/useTranslation";
+import InfoPopup from "./InfoPopup";
 
-function CausalityItem({ record, index, hasBeenSeen }) {
+const CausalityItem = memo(function CausalityItem({ record, index, hasBeenSeen }) {
   const t = useTranslation();
   const [isNew, setIsNew] = useState(false);
   const itemRef = useRef(null);
@@ -53,7 +54,7 @@ function CausalityItem({ record, index, hasBeenSeen }) {
       </div>
     </div>
   );
-}
+});
 
 export default function CausalityPanel() {
   const t = useTranslation();
@@ -101,11 +102,14 @@ export default function CausalityPanel() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    let interval = null;
+    
     // Initial fetch
     const fetchCausality = async () => {
       try {
         const data = await clientFetch("/world/causality");
-        if (data) {
+        if (isMounted && data) {
           setCausality(data);
           // Mark all initial records as seen
           if (data.records && Array.isArray(data.records)) {
@@ -116,14 +120,18 @@ export default function CausalityPanel() {
           }
         }
       } catch (error) {
-        console.error("Failed to fetch causality:", error);
+        if (isMounted) console.error("Failed to fetch causality:", error);
       }
     };
 
     fetchCausality();
     // Refresh every 10 seconds as fallback (WebSocket will update in real-time)
-    const interval = setInterval(fetchCausality, 10000);
-    return () => clearInterval(interval);
+    interval = setInterval(fetchCausality, 10000);
+    
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval);
+    };
   }, [setCausality]);
 
   // Track new records from WebSocket updates
@@ -141,14 +149,74 @@ export default function CausalityPanel() {
     }
   }, [causality]);
 
-  const records = causality?.records || [];
+  // Memoize records to prevent unnecessary recalculations
+  const records = useMemo(() => {
+    return causality?.records || [];
+  }, [causality?.records]);
+  
+  // Limit seen records Set to prevent unbounded growth (keep last 200)
+  useEffect(() => {
+    if (seenRecordsRef.current.size > 200) {
+      const keys = Array.from(seenRecordsRef.current);
+      const toKeep = keys.slice(-200);
+      seenRecordsRef.current = new Set(toKeep);
+    }
+  }, [records]);
+
+  const causalityInfoContent = (
+    <>
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">CAUSALITY OVERVIEW</h3>
+        <p className="mb-3">
+          The Causality panel tracks cause-and-effect relationships discovered in the simulation. These relationships show how actions and events lead to consequences, helping understand the underlying dynamics of the Matrix.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">CAUSALITY RECORDS</h3>
+        <p className="mb-2">
+          Each causality record represents a discovered relationship:
+        </p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li><strong>Cause:</strong> The initiating action, event, or condition</li>
+          <li><strong>Effect:</strong> The resulting outcome or consequence</li>
+          <li><strong>Confidence:</strong> How certain the system is about this relationship (0-100%)</li>
+          <li><strong>Turn:</strong> When this causality relationship was observed</li>
+        </ul>
+        <p className="mb-3">
+          Records are displayed as "Cause → Effect" with confidence and turn information. New records briefly glow when first discovered.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">HOW CAUSALITY WORKS</h3>
+        <p className="mb-3">
+          The system learns causality patterns by observing correlations between events over time. Higher confidence values indicate stronger, more frequently observed relationships. These patterns help predict future outcomes and understand system behavior.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">CONTROLS</h3>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li><strong>PAUSE/RESUME:</strong> Temporarily stop or resume causality updates</li>
+          <li><strong>Speed:</strong> Control how frequently causality records are updated (Fast, Normal, Slow, Very Slow)</li>
+        </ul>
+      </div>
+    </>
+  );
 
   return (
     <div className="bg-matrix-panel border-matrix border-matrix-green border-opacity-30 p-4 h-full flex flex-col lg:min-h-0">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h2 className="text-lg font-bold text-matrix-green text-matrix-glow tracking-wider">
-          CAUSALITY
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-matrix-green text-matrix-glow tracking-wider">
+            CAUSALITY
+          </h2>
+          <InfoPopup
+            title="CAUSALITY DATA GUIDE"
+            content={causalityInfoContent}
+          />
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handlePauseResume}
@@ -184,12 +252,13 @@ export default function CausalityPanel() {
           <div className="pr-2">
             {records.slice(0, 50).map((record, index) => {
               const recordKey = `${record.turn}-${record.cause}-${record.effect}`;
+              const hasBeenSeen = seenRecordsRef.current.has(recordKey);
               return (
                 <CausalityItem
                   key={`${recordKey}-${index}`}
                   record={record}
                   index={index}
-                  hasBeenSeen={seenRecordsRef.current.has(recordKey)}
+                  hasBeenSeen={hasBeenSeen}
                 />
               );
             })}

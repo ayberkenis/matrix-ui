@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, memo, useMemo } from "react";
 import { useWorldStore } from "../store/worldStore";
 import { clientFetch } from "../lib/matrixApi";
+import InfoPopup from "./InfoPopup";
 
-function EmotionTraceItem({ trace, index, hasBeenSeen }) {
+const EmotionTraceItem = memo(function EmotionTraceItem({
+  trace,
+  index,
+  hasBeenSeen,
+}) {
   const [isNew, setIsNew] = useState(false);
   const itemRef = useRef(null);
   const traceKey = `${trace.turn}-${trace.event}`;
@@ -30,50 +35,67 @@ function EmotionTraceItem({ trace, index, hasBeenSeen }) {
     surprise: "text-orange-400",
   };
 
+  const emotionEmojis = {
+    fear: "😨",
+    anger: "😠",
+    hope: "🙏",
+    joy: "😊",
+    sadness: "😢",
+    surprise: "😲",
+  };
+
   const formatPercent = (value) => ((value || 0) * 100).toFixed(1);
+
+  // Get emotion entries, excluding metadata fields
+  const emotionEntries = Object.entries(trace).filter(
+    ([key]) => !["event", "turn", "timestamp", "dominant"].includes(key)
+  );
 
   return (
     <div
       ref={itemRef}
-      className={`border-b border-matrix-green border-opacity-10 pb-3 mb-3 last:border-0 last:mb-0 transition-all duration-250 ${
+      className={`border border-matrix-green border-opacity-20 p-3 mb-3 last:mb-0 transition-all duration-250 bg-matrix-dark bg-opacity-30 ${
         isNew ? "opacity-100" : "opacity-100"
       }`}
       style={{
-        backgroundColor: isNew ? "rgba(0, 255, 65, 0.25)" : "transparent",
+        backgroundColor: isNew ? "rgba(0, 255, 65, 0.25)" : undefined,
         transition: "opacity 0.25s ease-out, background-color 0.25s ease-out",
       }}
     >
-      <p className="text-matrix-green-dim text-xs mb-2">{trace.event}</p>
-      <div className="flex items-center gap-3 text-xs text-matrix-green-dim flex-wrap">
-        <span
-          className={`font-bold ${
-            emotionColors[trace.dominant] || "text-matrix-green"
-          }`}
-        >
-          {trace.dominant?.toUpperCase()}
-        </span>
-        <span>Turn: {trace.turn}</span>
-        <div className="flex gap-2">
-          {Object.entries(trace)
-            .filter(
-              ([key]) =>
-                !["event", "turn", "timestamp", "dominant"].includes(key)
-            )
-            .map(([emotion, value]) => (
-              <span
-                key={emotion}
-                className={`${
-                  emotionColors[emotion] || "text-matrix-green-dim"
-                }`}
-              >
-                {emotion}: {formatPercent(value)}%
-              </span>
-            ))}
+      <div className="mb-2">
+        <p className="text-matrix-green-dim text-xs mb-1">{trace.event}</p>
+        <div className="flex items-center gap-2 text-xs">
+          <span
+            className={`font-bold ${
+              emotionColors[trace.dominant] || "text-matrix-green"
+            }`}
+          >
+            {trace.dominant && emotionEmojis[trace.dominant]}{" "}
+            {trace.dominant?.toUpperCase()}
+          </span>
+          <span className="text-matrix-green-dim">•</span>
+          <span className="text-matrix-green-dim">Turn: {trace.turn}</span>
         </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        {emotionEntries.map(([emotion, value]) => (
+          <div
+            key={emotion}
+            className={`flex items-center gap-1 ${
+              emotionColors[emotion] || "text-matrix-green-dim"
+            }`}
+          >
+            <span className="text-base">{emotionEmojis[emotion] || "•"}</span>
+            <span className="capitalize flex-1 truncate">{emotion}</span>
+            <span className="font-mono text-matrix-green-dim">
+              {formatPercent(value)}%
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
-}
+});
 
 export default function EmotionsPanel() {
   const emotions = useWorldStore((state) => state.emotions);
@@ -88,22 +110,29 @@ export default function EmotionsPanel() {
   const setEmotionsPaused = useWorldStore((state) => state.setEmotionsPaused);
 
   useEffect(() => {
+    let isMounted = true;
+    let interval = null;
+
     // Initial fetch
     const fetchEmotions = async () => {
       try {
         const data = await clientFetch("/world/emotions");
-        if (data) {
+        if (isMounted && data) {
           setEmotions(data);
         }
       } catch (error) {
-        console.error("Failed to fetch emotions:", error);
+        if (isMounted) console.error("Failed to fetch emotions:", error);
       }
     };
 
     fetchEmotions();
     // Refresh every 10 seconds as fallback (WebSocket will update in real-time)
-    const interval = setInterval(fetchEmotions, 10000);
-    return () => clearInterval(interval);
+    interval = setInterval(fetchEmotions, 10000);
+
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval);
+    };
   }, [setEmotions]);
 
   // Handle WebSocket updates - update summary and merge recent traces
@@ -114,9 +143,22 @@ export default function EmotionsPanel() {
     }
   }, [emotions]);
 
-  const summary = emotions?.summary || {};
-  const traces = emotions?.recent_traces || [];
+  // Memoize to prevent unnecessary recalculations
+  const summary = useMemo(() => emotions?.summary || {}, [emotions?.summary]);
+  const traces = useMemo(
+    () => emotions?.recent_traces || [],
+    [emotions?.recent_traces]
+  );
   const seenTracesRef = useRef(new Set());
+
+  // Limit seen traces Set to prevent unbounded growth (keep last 100)
+  useEffect(() => {
+    if (seenTracesRef.current.size > 100) {
+      const keys = Array.from(seenTracesRef.current);
+      const toKeep = keys.slice(-100);
+      seenTracesRef.current = new Set(toKeep);
+    }
+  }, [traces]);
 
   // Track initial traces as seen
   useEffect(() => {
@@ -185,12 +227,109 @@ export default function EmotionsPanel() {
     }
   };
 
+  const emotionsInfoContent = (
+    <>
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">EMOTIONS OVERVIEW</h3>
+        <p className="mb-3">
+          The Emotions panel tracks the emotional state of the simulation world.
+          It shows both aggregate emotional summaries and individual emotion
+          traces triggered by specific events.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">EMOTION TYPES</h3>
+        <p className="mb-2">
+          The system tracks six core emotions, each with color coding:
+        </p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>Fear:</strong> Anxiety and apprehension (purple)
+          </li>
+          <li>
+            <strong>Anger:</strong> Frustration and hostility (red)
+          </li>
+          <li>
+            <strong>Hope:</strong> Optimism and expectation (blue)
+          </li>
+          <li>
+            <strong>Joy:</strong> Happiness and satisfaction (yellow)
+          </li>
+          <li>
+            <strong>Sadness:</strong> Grief and melancholy (gray)
+          </li>
+          <li>
+            <strong>Surprise:</strong> Shock and unexpectedness (orange)
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">SUMMARY</h3>
+        <p className="mb-3">
+          The summary section shows aggregate emotional levels across the entire
+          simulation. Each emotion is displayed as a percentage (0-100%) with a
+          visual progress bar. These values represent the average emotional
+          state of all agents.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">RECENT TRACES</h3>
+        <p className="mb-2">
+          Emotion traces show how specific events triggered emotional responses:
+        </p>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>Event:</strong> The triggering event description
+          </li>
+          <li>
+            <strong>Dominant:</strong> The strongest emotion in this trace
+            (highlighted)
+          </li>
+          <li>
+            <strong>Turn:</strong> When this emotional response occurred
+          </li>
+          <li>
+            <strong>Emotion Values:</strong> Percentage breakdown of all
+            emotions (0-100%)
+          </li>
+        </ul>
+        <p className="mb-3">
+          New traces briefly glow when first received. Traces help understand
+          how events affect the emotional landscape of the simulation.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-matrix-green font-bold mb-2">CONTROLS</h3>
+        <ul className="list-disc list-inside mb-3 space-y-1 ml-2">
+          <li>
+            <strong>PAUSE/RESUME:</strong> Temporarily stop or resume emotion
+            updates
+          </li>
+          <li>
+            <strong>Speed:</strong> Control how frequently emotions are updated
+            (Fast, Normal, Slow, Very Slow)
+          </li>
+        </ul>
+      </div>
+    </>
+  );
+
   return (
     <div className="bg-matrix-panel border-matrix border-matrix-green border-opacity-30 p-4 h-full flex flex-col lg:min-h-0">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h2 className="text-lg font-bold text-matrix-green text-matrix-glow tracking-wider">
-          EMOTIONS
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-matrix-green text-matrix-glow tracking-wider">
+            EMOTIONS
+          </h2>
+          <InfoPopup
+            title="EMOTIONS DATA GUIDE"
+            content={emotionsInfoContent}
+          />
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handlePauseResume}
@@ -266,7 +405,8 @@ export default function EmotionsPanel() {
                 RECENT TRACES ({traces.length})
               </h3>
               <div>
-                {traces.map((trace, index) => {
+                {/* Limit displayed traces to 40 to reduce DOM nodes and improve performance */}
+                {traces.slice(0, 40).map((trace, index) => {
                   const traceKey = `${trace.turn}-${trace.event}`;
                   return (
                     <EmotionTraceItem

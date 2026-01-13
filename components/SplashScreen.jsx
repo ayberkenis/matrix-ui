@@ -60,7 +60,7 @@ export default function SplashScreen() {
       // Start minimum display timer once we've shown "The Matrix has you"
       const timer = setTimeout(() => {
         setMinDisplayTime(true);
-      }, 2000);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [currentLineIndex, minDisplayTime]);

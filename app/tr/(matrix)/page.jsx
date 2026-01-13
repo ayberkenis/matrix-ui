@@ -13,10 +13,10 @@ export default async function MatrixDashboard() {
   ]);
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden">
+    <div className="min-h-screen lg:h-screen flex flex-col ">
       <Header className="flex-shrink-0" />
 
-      <div className="flex-1 lg:min-h-0 lg:overflow-hidden">
+      <div className="flex-1 lg:min-h-0 ">
         <StoreInitializer
           initialData={{
             state,

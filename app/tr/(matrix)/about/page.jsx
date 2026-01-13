@@ -2,8 +2,8 @@ import { serverFetch } from "../../../../lib/matrixApi";
 import VersionDisplay from "../../../../components/VersionDisplay";
 
 export const metadata = {
-  title: "Hakkında - Living Matrix",
-  description: "Living Matrix simülasyonu hakkında",
+  title: "Hakkında - Matrix",
+  description: "Matrix simülasyonu hakkında",
 };
 
 export default async function AboutPage() {
@@ -17,7 +17,7 @@ export default async function AboutPage() {
         
         <div className="bg-matrix-panel border-matrix border-matrix-green border-opacity-30 p-6 space-y-4">
           <p className="text-matrix-green-dim leading-relaxed">
-            Living Matrix, sanal bir dünyada karmaşık sosyal, ekonomik ve çevresel dinamikleri
+            Matrix, sanal bir dünyada karmaşık sosyal, ekonomik ve çevresel dinamikleri
             modelleyen gelişmiş bir ajan tabanlı simülasyon sistemidir. Sistem, ajanların
             etkileşim kurduğu, çalıştığı, ticaret yaptığı ve çevrelerinde gezinirken bireysel
             ajanları takip eder.

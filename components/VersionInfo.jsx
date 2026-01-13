@@ -36,12 +36,10 @@ export default function VersionInfo() {
   };
 
   return (
-    <div className="text-xs text-matrix-green-dim font-mono">
+    <div className="text-sm text-matrix-green-dim font-mono">
       <span className="text-matrix-green">v{version.matrix_version}</span>
       {version.reset_count !== undefined && (
-        <span className="ml-2">
-          | Resets: {version.reset_count}/5
-        </span>
+        <span className="ml-2">| Resets: {version.reset_count}</span>
       )}
     </div>
   );

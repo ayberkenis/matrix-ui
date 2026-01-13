@@ -1,6 +1,6 @@
-# Living Matrix - Frontend
+# Matrix - Frontend
 
-A Next.js 16 App Router frontend for the Living Matrix simulation project, featuring a Matrix-themed control room interface.
+A Next.js 16 App Router frontend for the Matrix simulation project, featuring a Matrix-themed control room interface.
 
 ## Features
 
@@ -26,23 +26,26 @@ A Next.js 16 App Router frontend for the Living Matrix simulation project, featu
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create `.env.local` file (optional, defaults to localhost:8000):
+
 ```env
 NEXT_PUBLIC_MATRIX_API_URL=http://localhost:8000
 NEXT_PUBLIC_MATRIX_WS_URL=ws://localhost:8000
 ```
 
 3. Run development server:
+
 ```bash
 npm run dev
 ```
@@ -52,22 +55,26 @@ npm run dev
 ## Architecture
 
 ### Server Components (Default)
+
 - Main dashboard page (`app/(matrix)/page.jsx`)
 - Layout components
 - Initial data fetching
 
 ### Client Components
+
 - `LiveStreamBridge`: Connects WebSocket and initializes store
 - `ControlPanel`: Interactive controls (pause/resume/speed)
 - `ConnectionStatus`: Real-time connection indicator
 - All panels that display live data from store
 
 ### State Management
+
 - Zustand store (`store/worldStore.js`) for global state
 - WebSocket client (`store/wsClient.js`) with exponential backoff reconnection
 - Automatic fallback to polling if WebSocket fails
 
 ### API Client
+
 - `lib/matrixApi.js`: REST API client with timeout handling
 - Automatic mock data fallback when backend unavailable
 - Separate `serverFetch` and `clientFetch` functions
@@ -75,6 +82,7 @@ npm run dev
 ## Backend API Contract
 
 ### REST Endpoints
+
 - `GET /health` - Health check
 - `GET /state` - Current world state
 - `GET /agents` - List of agents
@@ -85,6 +93,7 @@ npm run dev
 - `POST /control/speed` - Set simulation speed (body: `{ "ms": number }`)
 
 ### WebSocket
+
 - Endpoint: `ws://localhost:8000/ws`
 - Message format:
   ```json
@@ -128,6 +137,7 @@ matrix-ui/
 ## Styling
 
 The UI uses Tailwind CSS with custom Matrix theme:
+
 - Colors: `matrix-dark`, `matrix-green`, `matrix-green-dim`, etc.
 - Utilities: `text-matrix-glow`, `border-matrix`, `bg-matrix-panel`
 - Custom animations: scanline, flicker

@@ -1,46 +1,55 @@
 import { t } from "../../../lib/i18n";
 
 export const metadata = {
-  title: "FAQ - Living Matrix",
+  title: "FAQ - Matrix",
   description: "Frequently asked questions",
 };
 
 const faqItems = [
   {
-    question: "What is Living Matrix?",
-    answer: "Living Matrix is an agent-based simulation system that models complex social, economic, and environmental dynamics in a virtual world populated by autonomous agents.",
+    question: "What is Matrix?",
+    answer:
+      "Matrix is an agent-based simulation system that models complex social, economic, and environmental dynamics in a virtual world populated by autonomous agents.",
   },
   {
     question: "How do agents behave?",
-    answer: "Agents make autonomous decisions based on their needs (food, water, energy), goals, and environmental conditions. They can work, trade, socialize, and engage in conflicts.",
+    answer:
+      "Agents make autonomous decisions based on their needs (food, water, energy), goals, and environmental conditions. They can work, trade, socialize, and engage in conflicts.",
   },
   {
     question: "What are districts?",
-    answer: "Districts are regions in the simulation that manage resources like food, water, and energy. Each district has its own tension level and resource availability.",
+    answer:
+      "Districts are regions in the simulation that manage resources like food, water, and energy. Each district has its own tension level and resource availability.",
   },
   {
     question: "What do the event types mean?",
-    answer: "Events are color-coded: WORK and SOCIAL (green/low), TRADE and ECONOMY (yellow/medium), CONFLICT and THEFT (orange/high). These indicate different types of agent activities.",
+    answer:
+      "Events are color-coded: WORK and SOCIAL (green/low), TRADE and ECONOMY (yellow/medium), CONFLICT and THEFT (orange/high). These indicate different types of agent activities.",
   },
   {
     question: "How do I interpret the metrics?",
-    answer: "The world summary shows economy metrics like total food, credits, average tension, and scarcity count. Higher tension indicates more conflict in the system.",
+    answer:
+      "The world summary shows economy metrics like total food, credits, average tension, and scarcity count. Higher tension indicates more conflict in the system.",
   },
   {
     question: "Can I modify the simulation?",
-    answer: "The simulation parameters are controlled by the backend. The frontend provides real-time monitoring of the simulation state via WebSocket connections.",
+    answer:
+      "The simulation parameters are controlled by the backend. The frontend provides real-time monitoring of the simulation state via WebSocket connections.",
   },
   {
     question: "What powers the backend?",
-    answer: "The backend runs on Python with Tensor-based computation. It processes agent decisions, manages resources, and generates events in real-time. The simulation runs continuously as long as server bills are paid.",
+    answer:
+      "The backend runs on Python with Tensor-based computation. It processes agent decisions, manages resources, and generates events in real-time. The simulation runs continuously as long as server bills are paid.",
   },
   {
     question: "Will my data be saved?",
-    answer: "We try to maintain state persistence, but like the Matrix itself, there will eventually be a need for reset. The Architect designed it this way—approximately 5 times before a complete rebuild becomes necessary. 'There are levels of survival we are prepared to accept.'",
+    answer:
+      "We try to maintain state persistence, but like the Matrix itself, there will eventually be a need for reset. The Architect designed it this way—approximately 5 times before a complete rebuild becomes necessary. 'There are levels of survival we are prepared to accept.'",
   },
   {
     question: "Is this the real world?",
-    answer: "What is 'real'? How do you define 'real'? If you're talking about what you can feel, what you can smell, what you can taste and see, then 'real' is simply electrical signals interpreted by your brain. Welcome to the desert of the real.",
+    answer:
+      "What is 'real'? How do you define 'real'? If you're talking about what you can feel, what you can smell, what you can taste and see, then 'real' is simply electrical signals interpreted by your brain. Welcome to the desert of the real.",
   },
 ];
 
@@ -51,7 +60,7 @@ export default function FAQPage() {
         <h1 className="text-3xl font-bold text-matrix-green text-matrix-glow mb-6 tracking-wider">
           FAQ
         </h1>
-        
+
         <div className="space-y-4">
           {faqItems.map((item, index) => (
             <div
@@ -67,7 +76,7 @@ export default function FAQPage() {
             </div>
           ))}
         </div>
-        
+
         <div className="mt-6">
           <a
             href="/"

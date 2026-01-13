@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Neden - Living Matrix",
-  description: "Living Matrix neden var",
+  title: "Neden - Matrix",
+  description: "Matrix neden var",
 };
 
 export default function WhyPage() {
@@ -13,7 +13,7 @@ export default function WhyPage() {
         
         <div className="bg-matrix-panel border-matrix border-matrix-green border-opacity-30 p-6 space-y-4">
           <p className="text-matrix-green-dim leading-relaxed">
-            Living Matrix, ajan tabanlı modelleme yoluyla karmaşık sistemleri keşfetmek ve
+            Matrix, ajan tabanlı modelleme yoluyla karmaşık sistemleri keşfetmek ve
             görselleştirmek için oluşturuldu. Proje, basit kuralları takip eden bireysel ajanların
             daha büyük ölçekte ortaya çıkan davranışlar ve kalıplar yaratabileceğini gösterir.
           </p>

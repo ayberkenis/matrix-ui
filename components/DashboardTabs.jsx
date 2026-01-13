@@ -7,7 +7,7 @@ import AgentsPanel from "./AgentsPanel";
 import WorldSummary from "./WorldSummary";
 import CausalityPanel from "./CausalityPanel";
 import EmotionsPanel from "./EmotionsPanel";
-
+import StateVisualizationPanel from "./StateVisualizationPanel";
 import RulesPanel from "./RulesPanel";
 
 const tabs = [
@@ -16,6 +16,12 @@ const tabs = [
   { id: "causality", label: "CAUSALITY", icon: "⇄" },
   { id: "emotions", label: "EMOTIONS", icon: "💭" },
   { id: "rules", label: "RULES", icon: "⚙" },
+  {
+    id: "visualization",
+    label: "WORLD STATE VISUALIZATION",
+    icon: "🖼️",
+    badge: "Gemini",
+  },
 ];
 
 export default function DashboardTabs() {
@@ -29,7 +35,7 @@ export default function DashboardTabs() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-xs font-mono font-bold tracking-wider transition-all flex-shrink-0 ${
+            className={`px-4 py-2 text-xs font-mono font-bold tracking-wider transition-all flex-shrink-0 relative ${
               activeTab === tab.id
                 ? "text-matrix-green text-matrix-glow border-b-2 border-matrix-green"
                 : "text-matrix-green-dim hover:text-matrix-green"
@@ -37,28 +43,33 @@ export default function DashboardTabs() {
           >
             <span className="mr-2">{tab.icon}</span>
             {tab.label}
+            {tab.badge && (
+              <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-blue-500 bg-opacity-20 text-blue-400 border border-blue-500 border-opacity-30 rounded">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 lg:min-h-0 lg:overflow-hidden">
+      <div className="flex-1 lg:min-h-0 ">
         {activeTab === "overview" && (
           <div className="h-full grid grid-cols-12 gap-4 p-4">
-            <div className="col-span-12 lg:col-span-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <div className="col-span-12 lg:col-span-4 lg:h-full lg:min-h-0 ">
               <DistrictsPanel />
             </div>
-            <div className="col-span-12 lg:col-span-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <div className="col-span-12 lg:col-span-4 lg:h-full lg:min-h-0 ">
               <WorldSummary />
             </div>
-            <div className="col-span-12 lg:col-span-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <div className="col-span-12 lg:col-span-4 lg:h-full lg:min-h-0 ">
               <AgentsPanel />
             </div>
           </div>
         )}
 
         {activeTab === "events" && (
-          <div className="h-full p-4 lg:min-h-0 lg:overflow-hidden">
+          <div className="h-full p-4 lg:min-h-0 ">
             <div className="h-full">
               <EventsPanel />
             </div>
@@ -66,7 +77,7 @@ export default function DashboardTabs() {
         )}
 
         {activeTab === "causality" && (
-          <div className="h-full p-4 lg:min-h-0 lg:overflow-hidden">
+          <div className="h-full p-4 lg:min-h-0 ">
             <div className="h-full">
               <CausalityPanel />
             </div>
@@ -74,7 +85,7 @@ export default function DashboardTabs() {
         )}
 
         {activeTab === "emotions" && (
-          <div className="h-full p-4 lg:min-h-0 lg:overflow-hidden">
+          <div className="h-full p-4 lg:min-h-0 ">
             <div className="h-full">
               <EmotionsPanel />
             </div>
@@ -82,9 +93,17 @@ export default function DashboardTabs() {
         )}
 
         {activeTab === "rules" && (
-          <div className="h-full p-4 lg:min-h-0 lg:overflow-hidden">
+          <div className="h-full p-4 lg:min-h-0 ">
             <div className="h-full">
               <RulesPanel />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "visualization" && (
+          <div className="h-full p-4 lg:min-h-0 ">
+            <div className="h-full">
+              <StateVisualizationPanel />
             </div>
           </div>
         )}

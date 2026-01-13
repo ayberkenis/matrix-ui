@@ -147,3 +147,36 @@
   font-size: 14px;
   line-height: 1.2;
 }
+
+/* Matrix typing effect with blinking cursor */
+.matrix-typing {
+  position: relative;
+  display: inline-block;
+}
+
+.matrix-typing::after {
+  content: "█";
+  position: absolute;
+  right: -1em;
+  animation: matrix-cursor-blink 0.7s infinite;
+  color: #00ff41;
+  text-shadow: 0 0 8px #00ff41, 0 0 15px rgba(0, 255, 65, 0.5);
+}
+
+@keyframes matrix-cursor-blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Alternative: inline cursor that flows with text */
+.matrix-typing-inline::after {
+  content: "▌";
+  animation: matrix-cursor-blink 0.5s infinite;
+  color: #00ff41;
+  text-shadow: 0 0 8px #00ff41;
+  margin-left: 2px;
+}

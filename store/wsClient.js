@@ -182,9 +182,9 @@ class WSClient {
         this.updateQueue.state = payload;
         break;
       case "event":
-        // Add events to queue (keep last 50 in queue to prevent memory issues)
+        // Add events to queue (keep last 20 in queue to prevent memory issues)
         this.updateQueue.events.push(payload);
-        if (this.updateQueue.events.length > 50) {
+        if (this.updateQueue.events.length > 20) {
           this.updateQueue.events.shift();
         }
         break;
@@ -271,24 +271,14 @@ class WSClient {
       const causalityData = this.updateQueue.causality;
       this.updateQueue.causality = null;
 
-      // Handle WebSocket updates with new_records - add one by one
+      // Handle WebSocket updates with new_records - batch update instead of cascading
+      // This prevents memory leaks from accumulating setTimeout calls
       if (
         causalityData?.new_records &&
         Array.isArray(causalityData.new_records)
       ) {
-        const events = [...causalityData.new_records];
-        // Add records one by one (reverse to maintain newest-first order)
-        // This creates a cascading effect where new records appear sequentially
-        events.reverse().forEach((record, index) => {
-          setTimeout(() => {
-            // Create a temporary causality object with just this record
-            const tempCausality = {
-              ...causalityData,
-              new_records: [record],
-            };
-            store.setCausality(tempCausality);
-          }, index * 50); // 50ms delay between each record
-        });
+        // Batch update all records at once for better performance
+        store.setCausality(causalityData);
       } else {
         // Handle REST API response or full update
         store.setCausality(causalityData);
@@ -299,24 +289,14 @@ class WSClient {
       const emotionsData = this.updateQueue.emotions;
       this.updateQueue.emotions = null;
 
-      // Handle WebSocket updates with recent_traces - add one by one
+      // Handle WebSocket updates with recent_traces - batch update instead of cascading
+      // This prevents memory leaks from accumulating setTimeout calls
       if (
         emotionsData?.recent_traces &&
         Array.isArray(emotionsData.recent_traces)
       ) {
-        const traces = [...emotionsData.recent_traces];
-        // Add traces one by one (reverse to maintain newest-first order)
-        // This creates a cascading effect where new traces appear sequentially
-        traces.reverse().forEach((trace, index) => {
-          setTimeout(() => {
-            // Create a temporary emotions object with just this trace
-            const tempEmotions = {
-              ...emotionsData,
-              recent_traces: [trace],
-            };
-            store.setEmotions(tempEmotions);
-          }, index * 50); // 50ms delay between each trace
-        });
+        // Batch update all traces at once for better performance
+        store.setEmotions(emotionsData);
       } else {
         // Handle REST API response or full update
         store.setEmotions(emotionsData);
@@ -409,11 +389,23 @@ class WSClient {
     this.shouldReconnect = false;
     this.stopPolling();
 
-    // Flush any pending updates before disconnecting
+    // Clear any pending update timers
     if (this.updateTimer) {
       clearTimeout(this.updateTimer);
-      this.flushUpdates();
+      this.updateTimer = null;
     }
+
+    // Clear the update queue to free memory
+    this.updateQueue = {
+      state: null,
+      events: [],
+      agents: null,
+      districts: null,
+      causality: null,
+      emotions: null,
+      rules: null,
+      metrics: null,
+    };
 
     if (this.ws) {
       this.ws.close();

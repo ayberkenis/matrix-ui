@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Dökümantasyon - Living Matrix",
-  description: "Living Matrix API dökümantasyonu",
+  title: "Dökümantasyon - Matrix",
+  description: "Matrix API dökümantasyonu",
 };
 
 export default function DocsPage() {

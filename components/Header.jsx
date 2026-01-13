@@ -11,11 +11,11 @@ import VersionInfo from "./VersionInfo";
 export default function Header({ className = "" }) {
   const t = useTranslation();
   const locale = useLocale();
-  const localePrefix = locale === 'tr' ? '/tr' : '';
-  
+  const localePrefix = locale === "tr" ? "/tr" : "";
+
   return (
     <header
-      className={`border-b border-matrix border-matrix-green border-opacity-30 bg-matrix-panel px-6 py-4 ${className}`}
+      className={`sticky top-0 z-10 border-b border-matrix border-matrix-green border-opacity-30 bg-matrix-panel px-6 py-4 ${className}`}
     >
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold text-matrix-green text-matrix-glow tracking-wider">
@@ -27,7 +27,7 @@ export default function Header({ className = "" }) {
           <WeatherDisplay />
         </div>
       </div>
-      <div className="flex items-center justify-end gap-4 mt-3 pt-3 border-t border-matrix-green border-opacity-20 text-xs text-matrix-green-dim">
+      <div className="flex items-center justify-end gap-4 mt-3 pt-3 border-t border-matrix-green border-opacity-20 text-lg text-matrix-green-dim">
         {/* <div className="h-4 w-px bg-matrix-green bg-opacity-30 hidden sm:block" /> */}
         <VersionInfo />
         <div className="h-4 w-px bg-matrix-green bg-opacity-30 hidden sm:block" />
