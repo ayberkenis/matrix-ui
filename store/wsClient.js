@@ -193,7 +193,9 @@ class WSClient {
         this.updateQueue.agents = payload?.agents || payload;
         break;
       case "districts":
-        this.updateQueue.districts = payload;
+        // Extract districts array from payload if it exists, otherwise use payload directly
+        // Handles both { districts: [...], count: N } and direct array formats
+        this.updateQueue.districts = payload?.districts || payload;
         break;
       case "causality":
         this.updateQueue.causality = payload;

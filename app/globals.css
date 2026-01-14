@@ -49,6 +49,32 @@
     position: relative;
   }
 
+  /* ASCII Renderer Tooltip Styles */
+  .ascii-tooltip {
+    @apply bg-black bg-opacity-95 border border-matrix-green text-matrix-green;
+    padding: 8px 12px;
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    max-width: 300px;
+    white-space: nowrap;
+  }
+
+  .ascii-tooltip-title {
+    @apply font-bold text-cyan-400 mb-1;
+  }
+
+  .ascii-tooltip-desc {
+    @apply text-matrix-green;
+  }
+
+  .ascii-tooltip-char {
+    @apply text-yellow-400;
+    font-size: 14px;
+    margin-right: 6px;
+  }
+
   .noise-overlay::after {
     content: "";
     position: absolute;

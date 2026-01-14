@@ -17,6 +17,13 @@ const tabs = [
     path: "/visualization",
     badge: "Gemini",
   },
+  {
+    id: "ascii",
+    label: "MATRIX STATE 2.5D",
+    icon: "▦",
+    path: "/state/ascii",
+    badge: "ASCII",
+  },
 ];
 
 export default function TabNavigation() {
