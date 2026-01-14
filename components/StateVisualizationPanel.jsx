@@ -45,21 +45,33 @@ export default function StateVisualizationPanel() {
           setMetadata(infoMetadata);
 
           // Set up countdown from info if available
-          if (
+          // Prefer calculating from generated_at timestamp for accuracy (12 hours from generation)
+          let nextGenerationTime = null;
+          if (latestImage.generated_at_timestamp) {
+            const generatedAt = new Date(
+              latestImage.generated_at_timestamp
+            ).getTime();
+            nextGenerationTime = generatedAt + 12 * 60 * 60 * 1000; // 12 hours from generation
+          } else if (
             info.next_generation_in_seconds !== undefined &&
-            info.next_generation_in_seconds > 0
+            info.next_generation_in_seconds > 0 &&
+            info.next_generation_in_seconds >= 3600 // Only use if >= 1 hour (reasonable value)
           ) {
-            const nextGenerationTime =
+            // Use API value only if it's reasonable (>= 1 hour)
+            nextGenerationTime =
               Date.now() + info.next_generation_in_seconds * 1000;
+          }
 
+          if (nextGenerationTime) {
             const updateCountdown = () => {
               if (!isMounted) return;
 
               const now = Date.now();
               const remaining = Math.max(0, nextGenerationTime - now);
-              const minutes = Math.floor(remaining / 60000);
+              const hours = Math.floor(remaining / 3600000);
+              const minutes = Math.floor((remaining % 3600000) / 60000);
               const seconds = Math.floor((remaining % 60000) / 1000);
-              setCountdown({ minutes, seconds, total: remaining });
+              setCountdown({ hours, minutes, seconds, total: remaining });
 
               if (remaining <= 0) {
                 // Countdown finished, check status again
@@ -185,9 +197,52 @@ export default function StateVisualizationPanel() {
         // Check if this is the same image (same state hash) - don't reload if it is
         const currentStateHash = headers["X-State-Hash"];
         if (currentStateHash && lastStateHashRef.current === currentStateHash) {
-          // Same image, don't update
+          // Same image, don't update - but still update countdown if needed
           isLoadingRef.current = false;
           setIsLoading(false);
+
+          // Still set up countdown if we have timing info
+          // Prefer calculating from generated_at timestamp for accuracy
+          let nextGenerationTime = null;
+          if (info?.latest_image?.generated_at_timestamp) {
+            const generatedAt = new Date(
+              info.latest_image.generated_at_timestamp
+            ).getTime();
+            nextGenerationTime = generatedAt + 12 * 60 * 60 * 1000; // 12 hours from generation
+          } else if (
+            info &&
+            info.next_generation_in_seconds !== undefined &&
+            info.next_generation_in_seconds > 0 &&
+            info.next_generation_in_seconds >= 3600 // Only use if >= 1 hour
+          ) {
+            nextGenerationTime =
+              Date.now() + info.next_generation_in_seconds * 1000;
+          }
+
+          if (nextGenerationTime) {
+            const updateCountdown = () => {
+              if (!isMounted) return;
+              const now = Date.now();
+              const remaining = Math.max(0, nextGenerationTime - now);
+              const hours = Math.floor(remaining / 3600000);
+              const minutes = Math.floor((remaining % 3600000) / 60000);
+              const seconds = Math.floor((remaining % 60000) / 1000);
+              setCountdown({ hours, minutes, seconds, total: remaining });
+              if (remaining <= 0) {
+                if (countdownIntervalRef.current) {
+                  clearInterval(countdownIntervalRef.current);
+                  countdownIntervalRef.current = null;
+                }
+                lastStateHashRef.current = null;
+                checkWorkerStatus();
+              }
+            };
+            if (countdownIntervalRef.current) {
+              clearInterval(countdownIntervalRef.current);
+            }
+            updateCountdown();
+            countdownIntervalRef.current = setInterval(updateCountdown, 1000);
+          }
           return;
         }
 
@@ -197,14 +252,21 @@ export default function StateVisualizationPanel() {
         setMetadata(headers);
 
         // Calculate next generation time
-        // Use info.next_generation_in_seconds if available, otherwise calculate from generated_at
+        // Always prefer calculating from generated_at timestamp (12 hours from generation)
+        // Only use API value if timestamp is not available and API value is reasonable
         let nextGenerationTime = null;
-        if (info && info.next_generation_in_seconds !== undefined) {
+        if (headers["X-Generated-At"]) {
+          const generatedAt = new Date(headers["X-Generated-At"]).getTime();
+          nextGenerationTime = generatedAt + 12 * 60 * 60 * 1000; // 12 hours from generation
+        } else if (
+          info &&
+          info.next_generation_in_seconds !== undefined &&
+          info.next_generation_in_seconds > 0 &&
+          info.next_generation_in_seconds >= 3600 // Only use if >= 1 hour (reasonable value)
+        ) {
+          // Fallback to API value only if timestamp not available and value is reasonable
           nextGenerationTime =
             Date.now() + info.next_generation_in_seconds * 1000;
-        } else if (headers["X-Generated-At"]) {
-          const generatedAt = new Date(headers["X-Generated-At"]).getTime();
-          nextGenerationTime = generatedAt + 12 * 60 * 60 * 1000; // 12 hours fallback
         }
 
         if (nextGenerationTime) {
@@ -213,19 +275,20 @@ export default function StateVisualizationPanel() {
 
             const now = Date.now();
             const remaining = Math.max(0, nextGenerationTime - now);
-            const minutes = Math.floor(remaining / 60000);
+            const hours = Math.floor(remaining / 3600000);
+            const minutes = Math.floor((remaining % 3600000) / 60000);
             const seconds = Math.floor((remaining % 60000) / 1000);
-            setCountdown({ minutes, seconds, total: remaining });
+            setCountdown({ hours, minutes, seconds, total: remaining });
 
             if (remaining <= 0) {
-              // Countdown finished, reload image
+              // Countdown finished, new image should be available
               if (countdownIntervalRef.current) {
                 clearInterval(countdownIntervalRef.current);
                 countdownIntervalRef.current = null;
               }
-              // Reset state hash to allow reload
+              // Reset state hash to allow reload of new image
               lastStateHashRef.current = null;
-              // Check worker status again and reload
+              // Check worker status again and reload - this will fetch the new image
               checkWorkerStatus();
             }
           };
@@ -262,12 +325,15 @@ export default function StateVisualizationPanel() {
     // Check worker status first, then load image if worker is running
     checkWorkerStatus();
 
-    // Periodically check worker status (every 30 seconds)
+    // Periodically check worker status and for new images
+    // Check every 5 minutes to catch new images that may have been generated
     const statusCheckInterval = setInterval(() => {
       if (isMounted) {
+        // Reset state hash to allow checking for new images
+        lastStateHashRef.current = null;
         checkWorkerStatus();
       }
-    }, 30000);
+    }, 5 * 60 * 1000); // 5 minutes
 
     // Cleanup object URL and countdown interval on unmount
     return () => {
@@ -340,8 +406,10 @@ export default function StateVisualizationPanel() {
         </h3>
         <p className="mb-3">
           This panel displays a visual representation of the current Matrix
-          simulation state, generated by Gemini AI. The image is automatically
-          regenerated every 12 hours to reflect the latest state of the world.
+          simulation state, generated by Gemini AI in real-time. The image is
+          automatically regenerated every 12 hours to reflect the latest state
+          of the world. New images are generated continuously as the simulation
+          progresses.
         </p>
       </div>
 
@@ -354,16 +422,22 @@ export default function StateVisualizationPanel() {
             image based on current simulation state
           </li>
           <li>
-            <strong>Auto-refresh:</strong> New images are generated every 12
-            hours
+            <strong>Real-time Generation:</strong> New images are generated
+            automatically every 12 hours in real-time as the simulation
+            progresses
           </li>
           <li>
             <strong>Countdown Timer:</strong> Shows time remaining until next
-            generation
+            generation (updates every second)
           </li>
           <li>
-            <strong>Cache:</strong> Images are cached for 1 hour to improve
-            performance
+            <strong>Auto-refresh:</strong> The panel automatically checks for
+            new images every 5 minutes and refreshes when a new generation is
+            available
+          </li>
+          <li>
+            <strong>State Hash Tracking:</strong> Uses state hash to detect when
+            a new image has been generated and avoid unnecessary reloads
           </li>
         </ul>
       </div>
@@ -505,8 +579,9 @@ export default function StateVisualizationPanel() {
                   Next Generation:
                 </div>
                 <div className="text-matrix-green font-mono font-bold text-lg text-center">
-                  {String(countdown.minutes).padStart(2, "0")}:
-                  {String(countdown.seconds).padStart(2, "0")}
+                  {String(countdown.hours || 0).padStart(2, "0")}:
+                  {String(countdown.minutes || 0).padStart(2, "0")}:
+                  {String(countdown.seconds || 0).padStart(2, "0")}
                 </div>
               </div>
             )}
