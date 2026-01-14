@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { id: "overview", label: "OVERVIEW", icon: "▣", path: "/overview" },
   { id: "agents", label: "AGENTS", icon: "👤", path: "/agents" },
+  { id: "districts", label: "DISTRICTS", icon: "🏛️", path: "/districts" },
   { id: "events", label: "EVENTS", icon: "⚡", path: "/events" },
   { id: "causality", label: "CAUSALITY", icon: "⇄", path: "/causality" },
   { id: "emotions", label: "EMOTIONS", icon: "💭", path: "/emotions" },
@@ -30,18 +31,30 @@ export default function TabNavigation() {
   const pathname = usePathname();
 
   // Determine active tab from pathname
+  // Don't highlight any tab on the homepage
   const currentTab =
-    tabs.find((tab) => {
-      if (pathname === tab.path) return true;
-      // Handle nested routes (e.g., /agents/[id] should highlight agents tab)
-      if (pathname.startsWith(tab.path + "/")) return true;
-      // Handle root path as overview
-      if (pathname === "/" && tab.id === "overview") return true;
-      return false;
-    })?.id || "overview";
+    pathname === "/"
+      ? null
+      : tabs.find((tab) => {
+          if (pathname === tab.path) return true;
+          // Handle nested routes (e.g., /agents/[id] should highlight agents tab)
+          if (pathname.startsWith(tab.path + "/")) return true;
+          return false;
+        })?.id || null;
 
   return (
     <div className="flex items-center gap-2 border-b border-matrix-green border-opacity-30 bg-matrix-panel px-4 py-2 flex-shrink-0 overflow-x-auto">
+      <Link
+        href="/"
+        className={`px-4 py-2 text-xs font-mono font-bold tracking-wider transition-all flex-shrink-0 relative ${
+          pathname === "/"
+            ? "text-matrix-green text-matrix-glow border-b-2 border-matrix-green"
+            : "text-matrix-green-dim hover:text-matrix-green"
+        }`}
+      >
+        <span className="mr-2">🏠</span>
+        HOME
+      </Link>
       {tabs.map((tab) => {
         const isActive = currentTab === tab.id;
         return (

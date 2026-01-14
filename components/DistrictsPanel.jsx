@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import Link from "next/link";
 import * as Accordion from "@radix-ui/react-accordion";
 import { useWorldStore } from "../store/worldStore";
 import { useTranslation } from "../lib/useTranslation";
+import { getCollapsedDistricts } from "../lib/matrixApi";
 import InfoPopup from "./InfoPopup";
 
 function ResourceBar({ label, value, color = "rgba(0, 255, 65, 0.8)", icon }) {
@@ -72,14 +73,48 @@ function SectionHeader({ icon, title, subtitle }) {
   );
 }
 
-export default function DistrictsPanel() {
+export default function DistrictsPanel({ hideCollapsed = true }) {
   const t = useTranslation();
   const districts = useWorldStore((state) => state.districts);
+  const [collapsedDistricts, setCollapsedDistricts] = useState([]);
+
+  // Fetch collapsed districts list
+  useEffect(() => {
+    getCollapsedDistricts()
+      .then((data) => {
+        if (data && data.collapsed && Array.isArray(data.collapsed)) {
+          setCollapsedDistricts(data.collapsed);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch collapsed districts:", err));
+
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      getCollapsedDistricts()
+        .then((data) => {
+          if (data && data.collapsed && Array.isArray(data.collapsed)) {
+            setCollapsedDistricts(data.collapsed);
+          }
+        })
+        .catch((err) =>
+          console.warn("Failed to fetch collapsed districts:", err)
+        );
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Ensure districts is always an array - memoized to prevent unnecessary recalculations
+  // Filter out collapsed districts if hideCollapsed is true
   const districtsArray = useMemo(() => {
-    return Array.isArray(districts) ? districts : [];
-  }, [districts]);
+    const allDistricts = Array.isArray(districts) ? districts : [];
+    if (hideCollapsed && collapsedDistricts.length > 0) {
+      return allDistricts.filter(
+        (d) => !collapsedDistricts.includes(d.id)
+      );
+    }
+    return allDistricts;
+  }, [districts, collapsedDistricts, hideCollapsed]);
 
   const districtsInfoContent = (
     <>
@@ -271,6 +306,11 @@ export default function DistrictsPanel() {
                     <div className="relative z-10 flex items-center justify-between w-full">
                       <h3 className="text-matrix-green font-bold">
                         {district.name}
+                        {collapsedDistricts.includes(district.id) && (
+                          <span className="ml-2 text-xs text-red-400" title="Collapsed District">
+                            💀 [COLLAPSED]
+                          </span>
+                        )}
                         {district.scarcity && (
                           <span className="ml-2 text-xs text-red-400">
                             [SCARCITY]
